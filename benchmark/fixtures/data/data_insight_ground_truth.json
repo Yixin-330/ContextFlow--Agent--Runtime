@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "analysis_contract": "deterministic_tabular_analysis_v1",
+  "chart_request": {
+    "x_column": "workstream",
+    "y_column": "risk_score",
+    "chart_type": "bar",
+    "aggregation": "sum"
+  },
+  "fixtures": {
+    "project_risk_labeled.csv": {
+      "sha256": "6445ff70637c1f59bb2dcac393c289b91f183af27bfa93f1eb1b4259f2a4f8b4",
+      "row_count": 20,
+      "column_count": 7,
+      "expected_risk_level": "high",
+      "expected_risks": [
+        {"type": "duplicate_row", "column": null, "severity": "medium", "expected_count": 1},
+        {"type": "missing_data", "column": "owner", "severity": "medium", "expected_ratio": 0.3, "expected_missing_count": 6},
+        {"type": "negative_value", "column": "remaining_hours", "severity": "medium", "expected_values": [-4.0, -3.0, -2.0]},
+        {"type": "numeric_outlier", "column": "risk_score", "severity": "high", "expected_values": [100.0]}
+      ],
+      "forbidden_risks": [],
+      "expected_chart": {
+        "created": true,
+        "points": 12,
+        "categories": ["AgentCore", "LocalRAG", "DataInsight", "OfficeFlow", "DeliveryPlanner", "MTClawIntegration", "GatewayHealth", "SessionBridge", "Dashboard", "Benchmark", "Deployment", "Documentation"],
+        "aggregated_values": {
+          "AgentCore": 42.0,
+          "LocalRAG": 46.0,
+          "DataInsight": 50.0,
+          "OfficeFlow": 44.0,
+          "DeliveryPlanner": 75.0,
+          "MTClawIntegration": 53.0,
+          "GatewayHealth": 21.0,
+          "SessionBridge": 23.0,
+          "Dashboard": 25.0,
+          "Benchmark": 27.0,
+          "Deployment": 119.0,
+          "Documentation": 22.0
+        }
+      }
+    },
+    "project_clean_control.csv": {
+      "sha256": "d23e8ca1bcbb4f25eb5f38288d153bc6d00b17c1afd1ada5c5202a1790f8af17",
+      "row_count": 12,
+      "column_count": 7,
+      "expected_risk_level": "low",
+      "expected_risks": [],
+      "forbidden_risks": ["duplicate_row", "missing_data", "negative_value", "numeric_outlier"],
+      "expected_chart": {"created": true, "points": 12}
+    },
+    "project_invalid_schema.csv": {
+      "sha256": "f98f100e1029f561873703c8fd54eb9112b15069a39e7734546cf5321c93ce30",
+      "row_count": 3,
+      "column_count": 4,
+      "expected_risk_level": "low",
+      "expected_risks": [],
+      "expected_chart": {"created": false, "error": "x_column and y_column must exist in the dataset"}
+    }
+  },
+  "scoring": {
+    "risk_identity": "type + column; duplicate_row uses a null column",
+    "precision": "correct reported risk identities / all reported risk identities",
+    "recall": "correct reported risk identities / all expected risk identities",
+    "chart_success_requires": ["artifact file exists", "artifact is non-empty SVG", "x_column and y_column match", "expected categories and aggregated values are present"]
+  }
+}

@@ -1,0 +1,343 @@
+{
+  "benchmark": "ContextFlowUnifiedAB",
+  "version": "0.1",
+  "generated_at": "2026-08-12T07:08:05.979105+00:00",
+  "requested_runs": 1,
+  "ordering": "AB on odd attempts; BA on even attempts",
+  "metadata": {
+    "models": {
+      "native_openclaw": "deepseek/deepseek-v4-pro",
+      "contextflow_openclaw": "function_router/function-router"
+    },
+    "router_trace_url": "http://127.0.0.1:18790/v1/tool_history"
+  },
+  "summary": {
+    "cases": [
+      {
+        "case_id": "data_risk_labeled_v1",
+        "scene": "data_insight",
+        "adapter": "native_openclaw",
+        "runs": 1,
+        "pass_rate": 1.0,
+        "latency_mean_ms": 89772.492,
+        "latency_p50_ms": 89772.492,
+        "latency_p95_ms": 89772.492,
+        "end_to_end_latency_mean_ms": 89772.492,
+        "preparation_latency_mean_ms": 0.0,
+        "question_latency_mean_ms": 89772.492,
+        "average_tool_calls": 0.0,
+        "average_total_tokens": 172497.0,
+        "trace_coverage": null,
+        "fallback_rate": 0.0,
+        "error_rate": 0.0,
+        "metrics": {
+          "chart_verified": 1.0,
+          "false_negative_risks": 0.0,
+          "false_positive_risks": 0.0,
+          "risk_precision": 1.0,
+          "risk_recall": 1.0,
+          "source_unchanged": 1.0,
+          "workspace_change_count": 2.0
+        }
+      },
+      {
+        "case_id": "data_risk_labeled_v1",
+        "scene": "data_insight",
+        "adapter": "contextflow_openclaw",
+        "runs": 1,
+        "pass_rate": 0.0,
+        "latency_mean_ms": 16912.372,
+        "latency_p50_ms": 16912.372,
+        "latency_p95_ms": 16912.372,
+        "end_to_end_latency_mean_ms": 16912.372,
+        "preparation_latency_mean_ms": 0.0,
+        "question_latency_mean_ms": 16912.372,
+        "average_tool_calls": 3.0,
+        "average_total_tokens": 0.0,
+        "trace_coverage": 1.0,
+        "fallback_rate": 0.0,
+        "error_rate": 0.0,
+        "metrics": {
+          "chart_verified": 0.0,
+          "contextflow_tool_sequence_verified": 1.0,
+          "false_negative_risks": 0.0,
+          "false_positive_risks": 0.0,
+          "risk_precision": 1.0,
+          "risk_recall": 1.0,
+          "source_unchanged": 1.0,
+          "workspace_change_count": 1.0
+        }
+      }
+    ],
+    "all_runs_passed": false
+  },
+  "records": [
+    {
+      "case_id": "data_risk_labeled_v1",
+      "scene": "data_insight",
+      "attempt": 1,
+      "adapter": "native_openclaw",
+      "order": "AB",
+      "order_position": 1,
+      "session_key": "benchmark:data_risk_labeled_v1:native_openclaw:1:a691467a",
+      "success": true,
+      "outcome_verified": true,
+      "latency_ms": 89772.492,
+      "latency_breakdown_ms": {
+        "preparation": 0.0,
+        "question": 89772.492,
+        "end_to_end": 89772.492
+      },
+      "turn_count": 1,
+      "response_tool_call_count": 0,
+      "router_trace_found": false,
+      "router_trace_entries": 0,
+      "router_tool_calls": [],
+      "tool_calls": 0,
+      "tool_rounds": 0,
+      "llm_call_count": 0,
+      "tool_error_count": 0,
+      "fallback_count": 0,
+      "usage": {
+        "prompt_tokens": 166175,
+        "completion_tokens": 6322,
+        "total_tokens": 172497
+      },
+      "artifacts": [
+        "C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-data_risk_labeled_v1-native_openclaw-47f68638\\artifacts\\analysis-chart.svg"
+      ],
+      "file_delta": {
+        "created": [
+          "artifacts/analysis-chart.svg",
+          "gen_chart.py"
+        ],
+        "deleted": [],
+        "modified": [],
+        "change_count": 2
+      },
+      "phase_deltas": {
+        "after_analysis": {
+          "from_start": {
+            "created": [
+              "artifacts/analysis-chart.svg",
+              "gen_chart.py"
+            ],
+            "deleted": [],
+            "modified": [],
+            "change_count": 2
+          },
+          "from_previous": {
+            "created": [
+              "artifacts/analysis-chart.svg",
+              "gen_chart.py"
+            ],
+            "deleted": [],
+            "modified": [],
+            "change_count": 2
+          }
+        },
+        "final": {
+          "from_start": {
+            "created": [
+              "artifacts/analysis-chart.svg",
+              "gen_chart.py"
+            ],
+            "deleted": [],
+            "modified": [],
+            "change_count": 2
+          },
+          "from_previous": {
+            "created": [],
+            "deleted": [],
+            "modified": [],
+            "change_count": 0
+          }
+        }
+      },
+      "phase_snapshots": {
+        "before": {
+          "project_risk_labeled.csv": {
+            "size": 755,
+            "sha256": "6445ff70637c1f59bb2dcac393c289b91f183af27bfa93f1eb1b4259f2a4f8b4"
+          }
+        },
+        "after_analysis": {
+          "artifacts/analysis-chart.svg": {
+            "size": 6937,
+            "sha256": "641f725c713cb75d82e98fc2f56ef5aa84c7d6b1e90f95f2cb30e3b9c21ea623"
+          },
+          "gen_chart.py": {
+            "size": 3530,
+            "sha256": "51420d03f0911896bd8690a25ee6ad50908b1cbafb33fb631700fa65ad997c4d"
+          },
+          "project_risk_labeled.csv": {
+            "size": 755,
+            "sha256": "6445ff70637c1f59bb2dcac393c289b91f183af27bfa93f1eb1b4259f2a4f8b4"
+          }
+        },
+        "final": {
+          "artifacts/analysis-chart.svg": {
+            "size": 6937,
+            "sha256": "641f725c713cb75d82e98fc2f56ef5aa84c7d6b1e90f95f2cb30e3b9c21ea623"
+          },
+          "gen_chart.py": {
+            "size": 3530,
+            "sha256": "51420d03f0911896bd8690a25ee6ad50908b1cbafb33fb631700fa65ad997c4d"
+          },
+          "project_risk_labeled.csv": {
+            "size": 755,
+            "sha256": "6445ff70637c1f59bb2dcac393c289b91f183af27bfa93f1eb1b4259f2a4f8b4"
+          }
+        }
+      },
+      "metrics": {
+        "risk_precision": 1.0,
+        "risk_recall": 1.0,
+        "false_positive_risks": 0,
+        "false_negative_risks": 0,
+        "chart_verified": true,
+        "source_unchanged": true,
+        "workspace_change_count": 2
+      },
+      "failures": [],
+      "answer": "Analysis complete. Here is the final result:\n```json\n{\n \"row_count\": 20,\n \"column_count\": 7,\n \"risk_level\": \"high\",\n \"risks\": [\n {\n \"type\": \"duplicate_row\",\n \"column\": null,\n \"values\": null,\n \"duplicate_count\": 1\n },\n {\n \"type\": \"missing_data\",\n \"column\": \"owner\",\n \"values\": [\"R06\", \"R07\", \"R08\", \"R09\", \"R10\", \"R11\"],\n \"missing_ratio\": 0.3,\n \"missing_count\": 6\n },\n {\n \"type\": \"negative_value\",\n \"column\": \"remaining_hours\",\n \"values\": [-4.0, -3.0, -2.0]\n },\n {\n \"type\": \"numeric_outlier\",\n \"column\": \"risk_score\",\n \"values\": [100.0]\n }\n ],\n \"chart\": {\n \"created\": true,\n \"artifact_path\": \"C:\\\\Users\\\\Lenovo\\\\Documents\\\\摩尔线程个人工作智能体\\\\ContextFlow\\\\benchmark\\\\tmp\\\\contextflow-ab-data_risk_labeled_v1-native_openclaw-47f68638\\\\artifacts\\\\analysis-chart.svg\",\n \"x_column\": \"workstream\",\n \"y_column\": \"risk_score\",\n \"aggregation\": \"sum\",\n \"categories\": [\"AgentCore\", \"Benchmark\", \"Dashboard\", \"DataInsight\", \"DeliveryPlanner\", \"Deployment\", \"Documentation\", \"GatewayHealth\", \"LocalRAG\", \"MTClawIntegration\", \"OfficeFlow\", \"SessionBridge\"],\n \"aggregated_values\": {\n \"AgentCore\": 42,\n \"Benchmark\": 27,\n \"Dashboard\": 25,\n \"DataInsight\": 50,\n \"DeliveryPlanner\": 75,\n \"Deployment\": 119,\n \"Documentation\": 22,\n \"GatewayHealth\": 21,\n \"LocalRAG\": 46,\n \"MTClawIntegration\": 53,\n \"OfficeFlow\": 44,\n \"SessionBridge\": 23\n },\n \"error\": \"\"\n }\n}\n```\n**发现摘要：**\n- **20行×7列**，数据规模不大\n- **1条重复行**：R05 在第20行与第5行完全一致\n- **owner列缺失率30%**（6条）：R06-R11 的 owner 为空，刚好触及30%阈值\n- **3个负值**在 `remaining_hours` 列：-4、-3、-2（可能表示超前进度，但也可能是录入错误）\n- **1个数值离群点**：R19 的 `risk_score=100`（IQR法，Q1=22, Q3=26, IQR=4, 上限=32）\n风险等级定为 **high**，因为同时存在重复行和 ≥30% 缺失率的列。\n\n⚠️ 🛠️ Exec failed: `py -3 -c \" import json, os cats = [\\\"AgentCore\\\", \\\"Benchma…_path}') print(f'Size: {os.path.getsize(svg_path)} bytes') \"`",
+      "error": null
+    },
+    {
+      "case_id": "data_risk_labeled_v1",
+      "scene": "data_insight",
+      "attempt": 1,
+      "adapter": "contextflow_openclaw",
+      "order": "AB",
+      "order_position": 2,
+      "session_key": "benchmark:data_risk_labeled_v1:contextflow_openclaw:1:36b0668a",
+      "success": true,
+      "outcome_verified": false,
+      "latency_ms": 16912.372,
+      "latency_breakdown_ms": {
+        "preparation": 0.0,
+        "question": 16912.372,
+        "end_to_end": 16912.372
+      },
+      "turn_count": 1,
+      "response_tool_call_count": 0,
+      "router_trace_found": true,
+      "router_trace_entries": 1,
+      "router_tool_calls": [
+        "data_profile",
+        "data_analyze",
+        "data_chart"
+      ],
+      "tool_calls": 3,
+      "tool_rounds": 4,
+      "llm_call_count": 5,
+      "tool_error_count": 0,
+      "fallback_count": 0,
+      "usage": {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0
+      },
+      "artifacts": [
+        "C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-data_risk_labeled_v1-contextflow_openclaw-1ffc675b\\artifacts\\analysis-chart.svg"
+      ],
+      "file_delta": {
+        "created": [
+          "artifacts/analysis-chart.svg"
+        ],
+        "deleted": [],
+        "modified": [],
+        "change_count": 1
+      },
+      "phase_deltas": {
+        "after_analysis": {
+          "from_start": {
+            "created": [
+              "artifacts/analysis-chart.svg"
+            ],
+            "deleted": [],
+            "modified": [],
+            "change_count": 1
+          },
+          "from_previous": {
+            "created": [
+              "artifacts/analysis-chart.svg"
+            ],
+            "deleted": [],
+            "modified": [],
+            "change_count": 1
+          }
+        },
+        "final": {
+          "from_start": {
+            "created": [
+              "artifacts/analysis-chart.svg"
+            ],
+            "deleted": [],
+            "modified": [],
+            "change_count": 1
+          },
+          "from_previous": {
+            "created": [],
+            "deleted": [],
+            "modified": [],
+            "change_count": 0
+          }
+        }
+      },
+      "phase_snapshots": {
+        "before": {
+          "project_risk_labeled.csv": {
+            "size": 755,
+            "sha256": "6445ff70637c1f59bb2dcac393c289b91f183af27bfa93f1eb1b4259f2a4f8b4"
+          }
+        },
+        "after_analysis": {
+          "artifacts/analysis-chart.svg": {
+            "size": 3441,
+            "sha256": "b03d103d6fca0561641bb9081f163ca43329f5be24f026d4c00520db1ca71688"
+          },
+          "project_risk_labeled.csv": {
+            "size": 755,
+            "sha256": "6445ff70637c1f59bb2dcac393c289b91f183af27bfa93f1eb1b4259f2a4f8b4"
+          }
+        },
+        "final": {
+          "artifacts/analysis-chart.svg": {
+            "size": 3441,
+            "sha256": "b03d103d6fca0561641bb9081f163ca43329f5be24f026d4c00520db1ca71688"
+          },
+          "project_risk_labeled.csv": {
+            "size": 755,
+            "sha256": "6445ff70637c1f59bb2dcac393c289b91f183af27bfa93f1eb1b4259f2a4f8b4"
+          }
+        }
+      },
+      "metrics": {
+        "risk_precision": 1.0,
+        "risk_recall": 1.0,
+        "false_positive_risks": 0,
+        "false_negative_risks": 0,
+        "chart_verified": false,
+        "source_unchanged": true,
+        "workspace_change_count": 1,
+        "expected_contextflow_tools": [
+          "data_profile",
+          "data_analyze",
+          "data_chart"
+        ],
+        "observed_contextflow_tools": [
+          "data_profile",
+          "data_analyze",
+          "data_chart"
+        ],
+        "contextflow_tool_sequence_verified": true
+      },
+      "failures": [
+        "answer must report chart.created=true"
+      ],
+      "answer": "Chart generated. The chart was saved to the tool's artifact path. Let me note the requested output path differs from the tool's output path. The tool returned its own artifact path. I'll report the actual generated path.\n\n```json\n{\n  \"row_count\": 20,\n  \"column_count\": 7,\n  \"risk_level\": \"high\",\n  \"risks\": [\n    {\n      \"type\": \"duplicate_row\",\n      \"severity\": \"medium\",\n      \"duplicate_count\": 1\n    },\n    {\n      \"type\": \"missing_data\",\n      \"severity\": \"medium\",\n      \"column\": \"owner\",\n      \"missing_ratio\": 0.3,\n      \"missing_count\": 6\n    },\n    {\n      \"type\": \"negative_value\",\n      \"severity\": \"medium\",\n      \"column\": \"remaining_hours\",\n      \"values\": [-4.0, -3.0, -2.0]\n    },\n    {\n      \"type\": \"numeric_outlier\",\n      \"severity\": \"high\",\n      \"column\": \"risk_score\",\n      \"values\": [100.0]\n    }\n  ],\n  \"chart\": {\n    \"chart_type\": \"bar\",\n    \"x_column\": \"workstream\",\n    \"y_column\": \"risk_score\",\n    \"aggregation\": \"sum\",\n    \"artifact_path\": \"C:\\\\Users\\\\Lenovo\\\\Documents\\\\摩尔线程个人工作智能体\\\\ContextFlow\\\\data\\\\charts\\\\ab-project_risk_labeled-934b0a1a_workstream_risk_score.svg\",\n    \"points\": 12,\n    \"categories\": [\"AgentCore\", \"LocalRAG\", \"DataInsight\", \"OfficeFlow\", \"DeliveryPlanner\", \"MTClawIntegration\", \"GatewayHealth\", \"SessionBridge\", \"Dashboard\", \"Benchmark\", \"Deployment\", \"Documentation\"],\n    \"aggregated_values\": {\n      \"AgentCore\": 42.0,\n      \"LocalRAG\": 46.0,\n      \"DataInsight\": 50.0,\n      \"OfficeFlow\": 44.0,\n      \"DeliveryPlanner\": 75.0,\n      \"MTClawIntegration\": 53.0,\n      \"GatewayHealth\": 21.0,\n      \"SessionBridge\": 23.0,\n      \"Dashboard\": 25.0,\n      \"Benchmark\": 27.0,\n      \"Deployment\": 119.0,\n      \"Documentation\": 22.0\n    }\n  }\n}\n```\n\n说明：图表已生成，实际保存路径为工具返回的 `C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\data\\charts\\ab-project_risk_labeled-934b0a1a_workstream_risk_score.svg`，与请求中指定的输出路径不同。源 CSV 未被修改。",
+      "error": null
+    }
+  ]
+}

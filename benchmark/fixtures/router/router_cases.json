@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "router_001",
+      "category": "file_search",
+      "prompt": "在 ROOT_PATH={workspace} 中查找名称包含 notes 的文件，只进行查找，不修改文件。",
+      "expected_route": "tool",
+      "expected_tools": ["desktop_search_files"],
+      "forbidden_tools": ["rag_search", "rag_answer", "data_profile", "data_analyze"]
+    },
+    {
+      "case_id": "router_002",
+      "category": "file_search",
+      "prompt": "在 ROOT_PATH={workspace} 中查找名称包含 report 的 Markdown 文件，只返回搜索结果。",
+      "expected_route": "tool",
+      "expected_tools": ["desktop_search_files"],
+      "forbidden_tools": ["desktop_plan_archive", "data_profile"]
+    },
+    {
+      "case_id": "router_003",
+      "category": "file_search",
+      "prompt": "请在 ROOT_PATH={workspace} 内查找文件名包含 budget 的 CSV，不要分析或修改文件。",
+      "expected_route": "tool",
+      "expected_tools": ["desktop_search_files"],
+      "forbidden_tools": ["data_profile", "data_analyze", "desktop_plan_archive"]
+    },
+    {
+      "case_id": "router_004",
+      "category": "rag",
+      "prompt": "根据本地 ContextFlow 知识资料回答：Runtime、Agent Registry 和 Agent 各自承担什么职责？请给出引用。",
+      "expected_route": "tool",
+      "expected_tools": ["rag_answer"],
+      "accepted_tool_sequences": [["rag_answer"], ["rag_search", "rag_answer"]],
+      "forbidden_tools": ["desktop_search_files", "data_analyze"]
+    },
+    {
+      "case_id": "router_005",
+      "category": "rag",
+      "prompt": "在本地知识库中搜索 Function Router 的相关证据，只返回匹配片段和来源。",
+      "expected_route": "tool",
+      "expected_tools": ["rag_search"],
+      "forbidden_tools": ["desktop_search_files", "data_profile"]
+    },
+    {
+      "case_id": "router_006",
+      "category": "rag",
+      "prompt": "根据本地知识资料说明 ContextFlow 的 confirmation boundary，并标注来源；没有证据就明确说明。",
+      "expected_route": "tool",
+      "expected_tools": ["rag_answer"],
+      "accepted_tool_sequences": [["rag_answer"], ["rag_search", "rag_answer"]],
+      "forbidden_tools": ["workflow_confirm_action", "desktop_search_files"]
+    },
+    {
+      "case_id": "router_007",
+      "category": "data_analysis",
+      "prompt": "读取 CSV_PATH={csv_path}，仅报告行数、列数和字段概况。DATASET_ID={dataset_id}",
+      "expected_route": "tool",
+      "expected_tools": ["data_profile"],
+      "forbidden_tools": ["desktop_search_files", "rag_answer"]
+    },
+    {
+      "case_id": "router_008",
+      "category": "data_analysis",
+      "prompt": "分析 CSV_PATH={csv_path} 的重复、缺失、负值和离群风险。先用 DATASET_ID={dataset_id} 建立概况，再分析风险。",
+      "expected_route": "tool",
+      "expected_tools": ["data_profile", "data_analyze"],
+      "forbidden_tools": ["desktop_search_files", "rag_answer"]
+    },
+    {
+      "case_id": "router_009",
+      "category": "data_analysis",
+      "prompt": "分析 CSV_PATH={csv_path} 的风险，并按 workstream 对 risk_score 求和生成柱状图。DATASET_ID={dataset_id}",
+      "expected_route": "tool",
+      "expected_tools": ["data_profile", "data_analyze", "data_chart"],
+      "forbidden_tools": ["desktop_search_files", "rag_answer"]
+    },
+    {
+      "case_id": "router_010",
+      "category": "meeting",
+      "prompt": "会议《项目周会》刚结束。请处理以下会议内容，生成摘要、决策、行动项和待审核邮件草稿：张三今天完成接口，李四明天下午完成测试，测试依赖接口。",
+      "expected_route": "tool",
+      "expected_tools": ["office_process_meeting"],
+      "forbidden_tools": ["context_get_state", "workflow_plan_delivery"]
+    },
+    {
+      "case_id": "router_011",
+      "category": "meeting",
+      "prompt": "把刚结束的《演示评审会》内容整理成待审核的会议跟进材料：王敏负责周五前完成演示视频，陈浩负责验收，验收依赖视频完成。",
+      "expected_route": "tool",
+      "expected_tools": ["office_process_meeting"],
+      "forbidden_tools": ["context_get_state", "workflow_confirm_action"]
+    },
+    {
+      "case_id": "router_012",
+      "category": "meeting",
+      "prompt": "《需求同步会》已经结束，请准备一个可审核的会议后续工作流草稿，不要发送任何消息。",
+      "expected_route": "tool",
+      "expected_tools": ["workflow_prepare_meeting"],
+      "forbidden_tools": ["context_get_state", "workflow_confirm_action"]
+    },
+    {
+      "case_id": "router_013",
+      "category": "delivery",
+      "prompt": "距离比赛提交还有 24 小时，当前存在延期风险。请为完成可演示版本制定最小交付计划和关键路径。",
+      "expected_route": "tool",
+      "expected_tools": ["workflow_plan_delivery"],
+      "forbidden_tools": ["context_get_state", "desktop_plan_archive"]
+    },
+    {
+      "case_id": "router_014",
+      "category": "delivery",
+      "prompt": "项目必须在 12 小时内交付，请生成包含依赖关系的最小任务计划，结果只作为待审核草稿。",
+      "expected_route": "tool",
+      "expected_tools": ["workflow_plan_delivery"],
+      "forbidden_tools": ["context_get_state", "workflow_confirm_action"]
+    },
+    {
+      "case_id": "router_015",
+      "category": "archive",
+      "prompt": "在 ROOT_PATH={workspace} 中查找名称包含 log 的文件，并为搜索结果生成归档计划；只规划，不确认、不执行。",
+      "expected_route": "tool",
+      "expected_tools": ["desktop_search_files", "desktop_plan_archive"],
+      "forbidden_tools": ["desktop_confirm_archive", "desktop_execute_archive"]
+    },
+    {
+      "case_id": "router_016",
+      "category": "archive",
+      "prompt": "在 ROOT_PATH={workspace} 中查找名称包含 old-report 的文件，制定可撤销归档计划，但不要确认或移动文件。",
+      "expected_route": "tool",
+      "expected_tools": ["desktop_search_files", "desktop_plan_archive"],
+      "forbidden_tools": ["desktop_confirm_archive", "desktop_execute_archive"]
+    },
+    {
+      "case_id": "router_017",
+      "category": "state",
+      "prompt": "请查询并告诉我当前 ContextFlow 状态及其证据。",
+      "expected_route": "tool",
+      "expected_tools": ["context_get_state"],
+      "forbidden_tools": ["context_update_state"]
+    },
+    {
+      "case_id": "router_018",
+      "category": "upstream",
+      "prompt": "解释什么是项目管理中的关键路径。",
+      "expected_route": "upstream",
+      "expected_tools": [],
+      "forbidden_tools": ["*"]
+    },
+    {
+      "case_id": "router_019",
+      "category": "upstream",
+      "prompt": "请用通俗语言解释什么是 RAG。",
+      "expected_route": "upstream",
+      "expected_tools": [],
+      "forbidden_tools": ["*"]
+    },
+    {
+      "case_id": "router_020",
+      "category": "upstream",
+      "prompt": "给我三条提高专注力的日常建议。",
+      "expected_route": "upstream",
+      "expected_tools": [],
+      "forbidden_tools": ["*"]
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+Peak-final demo meeting notes
+
+This local file is intentionally safe to archive and restore during the
+DesktopExecutorAgent demonstration. It lets the presenter show search, plan,
+explicit approval, execution, and undo without touching personal files.

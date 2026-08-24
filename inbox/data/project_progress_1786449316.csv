@@ -1,0 +1,6 @@
+workstream,progress,remaining_hours,risk_score
+LocalRAGAgent,100,0,5
+DataInsightAgent,45,12,80
+OfficeFlowAgent,70,6,40
+DeliveryPlannerAgent,55,10,65
+MTClaw_AIBOOK_deployment,20,18,90

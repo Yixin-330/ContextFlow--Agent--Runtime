@@ -1,0 +1,61 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 18790,
+  "tools_base_dir": "${CONTEXTFLOW_HOME}",
+  "fr_completion_check": {
+    "enabled": true,
+    "mode": "permissive",
+    "always_true": false
+  },
+  "fr_context_history": {
+    "enabled": true
+  },
+  "fr_context_preserve": {
+    "enabled": false
+  },
+  "delegate_tools_to_openclaw": {
+    "enabled": false,
+    "tools": [
+      "context_get_state",
+      "context_update_state",
+      "context_ingest_event",
+      "context_simulate_calendar",
+      "context_import_meeting_notes",
+      "context_simulate_meeting_end",
+      "workflow_prepare_meeting",
+      "workflow_plan_delivery",
+      "workflow_confirm_action",
+      "office_process_meeting",
+      "delivery_replan",
+      "rag_ingest",
+      "rag_search",
+      "rag_answer",
+      "data_profile",
+      "data_analyze",
+      "data_chart",
+      "desktop_search_files",
+      "desktop_plan_archive",
+      "desktop_confirm_archive",
+      "desktop_execute_archive",
+      "desktop_undo_archive"
+    ]
+  },
+  "routing": {
+    "base_url": "${CONTEXTFLOW_ROUTING_BASE_URL}",
+    "model": "${CONTEXTFLOW_ROUTING_MODEL}",
+    "api_key": "${CONTEXTFLOW_ROUTING_API_KEY}"
+  },
+  "upstream": {
+    "base_url": "${CONTEXTFLOW_UPSTREAM_BASE_URL}",
+    "model": "${CONTEXTFLOW_UPSTREAM_MODEL}",
+    "api_key": "${CONTEXTFLOW_UPSTREAM_API_KEY}"
+  },
+  "functions_file": "functions.jsonl",
+  "scripts_dir": "scripts",
+  "max_tool_rounds": 4,
+  "tool_exec_timeout_s": 30,
+  "routing_timeout_s": 10.0,
+  "debug_logging": {
+    "enabled": true
+  }
+}

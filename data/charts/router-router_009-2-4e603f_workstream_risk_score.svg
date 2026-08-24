@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+<rect width="960" height="540" fill="#0B0F14"/>
+<line x1="80" y1="40" x2="80" y2="460" stroke="#8090A3"/>
+<line x1="80" y1="460" x2="936" y2="460" stroke="#8090A3"/>
+<text x="80" y="28" font-size="20" fill="#F5F7FA">router-router_009-2-4e603f · risk_score by workstream</text>
+<rect x="80.0" y="384.0" width="264.0" height="76.0" fill="#4EA1FF"/>
+<text x="212.0" y="498" text-anchor="middle" font-size="11" fill="#C7D0DD">AgentCore</text>
+<text x="212.0" y="376.0" text-anchor="middle" font-size="12" fill="#F5F7FA">20</text>
+<rect x="360.0" y="270.0" width="264.0" height="190.0" fill="#4EA1FF"/>
+<text x="492.0" y="498" text-anchor="middle" font-size="11" fill="#C7D0DD">LocalRAG</text>
+<text x="492.0" y="262.0" text-anchor="middle" font-size="12" fill="#F5F7FA">50</text>
+<rect x="640.0" y="80.0" width="264.0" height="380.0" fill="#4EA1FF"/>
+<text x="772.0" y="498" text-anchor="middle" font-size="11" fill="#C7D0DD">DataInsight</text>
+<text x="772.0" y="72.0" text-anchor="middle" font-size="12" fill="#F5F7FA">100</text>
+</svg>

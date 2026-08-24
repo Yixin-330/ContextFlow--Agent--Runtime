@@ -1,0 +1,61 @@
+<frozen runpy>:128: RuntimeWarning: 'function_router.server' found in sys.modules after import of package 'function_router', but prior to execution of 'function_router.server'; this may result in unpredictable behaviour
+C:\Users\Lenovo\Documents\摩尔线程个人工作智能体\MTClaw\function_router\server.py:2141: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+C:\Users\Lenovo\Documents\摩尔线程个人工作智能体\MTClaw\function_router\server.py:2165: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+2026-08-12T09:44:43+0800 INFO function_router config loaded from C:\Users\Lenovo\Documents\摩尔线程个人工作智能体\ContextFlow\mtclaw\config.contextflow.json
+2026-08-12T09:44:43+0800 INFO function_router loaded 22 tools from C:\Users\Lenovo\Documents\摩尔线程个人工作智能体\ContextFlow\mtclaw\functions.jsonl
+2026-08-12T09:44:43+0800 INFO function_router warmup result: success
+2026-08-12T09:47:50+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=3aff1d52-f3d7-4d70-8b43-750b1e74fc89 session_key=3aff1d52-f3d7-4d70-8b43-750b1e74fc89
+2026-08-12T09:47:50+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T09:47:54+0800 INFO function_router saved context[3aff1d52-f3d7-4d70-8b43-750b1e74fc89]: 4 messages
+2026-08-12T09:47:54+0800 INFO function_router.request {"timestamp": "2026-08-12T01:47:54.436770+00:00", "user_message": "请在目录 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\demo_desktop\" 中搜索文件名包含 \"notes\" 的文件。只读搜索，不要修改", "route": "function", "function_name": "desktop_search_files", "tool_rounds": 2, "latency_ms": 4054.11, "status": "qwen_completed"}
+2026-08-12T09:57:18+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=4a882ddb-9006-4dea-871b-1cce0f4fed4a session_key=4a882ddb-9006-4dea-871b-1cce0f4fed4a
+2026-08-12T09:57:18+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T09:57:23+0800 INFO function_router saved context[4a882ddb-9006-4dea-871b-1cce0f4fed4a]: 4 messages
+2026-08-12T09:57:23+0800 INFO function_router.request {"timestamp": "2026-08-12T01:57:23.293946+00:00", "user_message": "请在目录 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\demo_desktop\" 中搜索文件名包含 \"notes\" 的文件。只读搜索，不要修改", "route": "function", "function_name": "desktop_search_files", "tool_rounds": 2, "latency_ms": 4345.27, "status": "qwen_completed"}
+2026-08-12T09:57:32+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=e8bf501e-d7fd-49a3-9944-b17c53948802 session_key=e8bf501e-d7fd-49a3-9944-b17c53948802
+2026-08-12T09:57:32+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T09:57:35+0800 INFO function_router saved context[e8bf501e-d7fd-49a3-9944-b17c53948802]: 4 messages
+2026-08-12T09:57:35+0800 INFO function_router.request {"timestamp": "2026-08-12T01:57:35.381502+00:00", "user_message": "请在目录 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\demo_desktop\" 中搜索文件名包含 \"notes\" 的文件。只读搜索，不要修改", "route": "function", "function_name": "desktop_search_files", "tool_rounds": 2, "latency_ms": 2992.34, "status": "qwen_completed"}
+2026-08-12T09:57:43+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=d06f61cf-9f9b-4790-a6e5-9ac932333e1f session_key=d06f61cf-9f9b-4790-a6e5-9ac932333e1f
+2026-08-12T09:57:43+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T09:57:46+0800 INFO function_router saved context[d06f61cf-9f9b-4790-a6e5-9ac932333e1f]: 4 messages
+2026-08-12T09:57:46+0800 INFO function_router.request {"timestamp": "2026-08-12T01:57:46.584920+00:00", "user_message": "请在目录 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\demo_desktop\" 中搜索文件名包含 \"notes\" 的文件。只读搜索，不要修改", "route": "function", "function_name": "desktop_search_files", "tool_rounds": 2, "latency_ms": 3231.87, "status": "qwen_completed"}
+2026-08-12T11:39:39+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=604d4394-5251-48c6-a520-e356771e1da5 session_key=604d4394-5251-48c6-a520-e356771e1da5
+2026-08-12T11:39:39+0800 INFO function_router.request {"timestamp": "2026-08-12T03:39:39.705384+00:00", "user_message": "请只使用本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_ra", "route": "function", "function_name": "rag_answer", "tool_rounds": 1, "latency_ms": 688.39, "status": "contextflow_local_rag_short_path"}
+2026-08-12T11:39:44+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=88b51fd6-b066-47d1-bacf-8fa12a4bfb34 session_key=88b51fd6-b066-47d1-bacf-8fa12a4bfb34
+2026-08-12T11:39:44+0800 INFO function_router.request {"timestamp": "2026-08-12T03:39:44.700426+00:00", "user_message": "请只使用本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_ra", "route": "function", "function_name": "rag_answer", "tool_rounds": 1, "latency_ms": 206.18, "status": "contextflow_local_rag_short_path"}
+2026-08-12T11:40:24+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=41ee641a-53e5-4da5-9da7-4c44245f793e session_key=41ee641a-53e5-4da5-9da7-4c44245f793e
+2026-08-12T11:40:24+0800 INFO function_router.request {"timestamp": "2026-08-12T03:40:24.453191+00:00", "user_message": "请只使用本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_ra", "route": "function", "function_name": "rag_answer", "tool_rounds": 1, "latency_ms": 195.4, "status": "contextflow_local_rag_short_path"}
+2026-08-12T11:43:01+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=186b6d6f-1e1a-4f00-ae60-1219d1de7f2b session_key=186b6d6f-1e1a-4f00-ae60-1219d1de7f2b
+2026-08-12T11:43:01+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T11:43:05+0800 INFO function_router saved context[186b6d6f-1e1a-4f00-ae60-1219d1de7f2b]: 4 messages
+2026-08-12T11:43:05+0800 INFO function_router.request {"timestamp": "2026-08-12T03:43:05.533579+00:00", "user_message": "请将本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_rag_", "route": "function", "function_name": "rag_ingest", "tool_rounds": 2, "latency_ms": 3710.83, "status": "qwen_completed"}
+2026-08-12T11:43:10+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=186b6d6f-1e1a-4f00-ae60-1219d1de7f2b session_key=186b6d6f-1e1a-4f00-ae60-1219d1de7f2b
+2026-08-12T11:43:10+0800 INFO function_router.request {"timestamp": "2026-08-12T03:43:10.616110+00:00", "user_message": "请只使用本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_ra", "route": "function", "function_name": "rag_answer", "tool_rounds": 1, "latency_ms": 200.19, "status": "contextflow_local_rag_short_path"}
+2026-08-12T11:43:16+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=4f460216-c463-4499-90e3-43c65770a80a session_key=4f460216-c463-4499-90e3-43c65770a80a
+2026-08-12T11:43:16+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T11:43:20+0800 INFO function_router saved context[4f460216-c463-4499-90e3-43c65770a80a]: 4 messages
+2026-08-12T11:43:20+0800 INFO function_router.request {"timestamp": "2026-08-12T03:43:20.046109+00:00", "user_message": "请将本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_rag_", "route": "function", "function_name": "rag_ingest", "tool_rounds": 2, "latency_ms": 3740.64, "status": "qwen_completed"}
+2026-08-12T11:43:23+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=4f460216-c463-4499-90e3-43c65770a80a session_key=4f460216-c463-4499-90e3-43c65770a80a
+2026-08-12T11:43:23+0800 INFO function_router.request {"timestamp": "2026-08-12T03:43:23.995725+00:00", "user_message": "请只使用本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_ra", "route": "function", "function_name": "rag_answer", "tool_rounds": 1, "latency_ms": 199.16, "status": "contextflow_local_rag_short_path"}
+2026-08-12T11:43:50+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=29e50fb2-7807-43de-b889-bbe22e13d044 session_key=29e50fb2-7807-43de-b889-bbe22e13d044
+2026-08-12T11:43:50+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T11:43:53+0800 INFO function_router saved context[29e50fb2-7807-43de-b889-bbe22e13d044]: 4 messages
+2026-08-12T11:43:53+0800 INFO function_router.request {"timestamp": "2026-08-12T03:43:53.193029+00:00", "user_message": "请将本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_rag_", "route": "function", "function_name": "rag_ingest", "tool_rounds": 2, "latency_ms": 3171.26, "status": "qwen_completed"}
+2026-08-12T11:43:56+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=29e50fb2-7807-43de-b889-bbe22e13d044 session_key=29e50fb2-7807-43de-b889-bbe22e13d044
+2026-08-12T11:43:56+0800 INFO function_router.request {"timestamp": "2026-08-12T03:43:56.896734+00:00", "user_message": "请只使用本地文件 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\benchmark\\tmp\\contextflow-ab-ab_local_ra", "route": "function", "function_name": "rag_answer", "tool_rounds": 1, "latency_ms": 183.75, "status": "contextflow_local_rag_short_path"}
+2026-08-12T11:56:15+0800 INFO function_router header x-openclaw-session-key= x-openclaw-session-id=231e2847-e3d7-462b-860a-31038d1dafeb session_key=231e2847-e3d7-462b-860a-31038d1dafeb
+2026-08-12T11:56:15+0800 INFO function_router ctx_enabled=True, ctx_preserve=False, saved_context_len=0
+2026-08-12T11:56:16+0800 INFO function_router.request {"timestamp": "2026-08-12T03:56:16.766380+00:00", "user_message": "????????????????????????????????", "route": "upstream", "function_name": null, "tool_rounds": 1, "latency_ms": 1079.22, "status": "forwarded_after_routing"}

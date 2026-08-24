@@ -1,0 +1,142 @@
+{
+  "benchmark": "ContextFlowScenarioBench",
+  "version": "0.1",
+  "generated_at": "2026-08-11T10:00:25.799151+00:00",
+  "requested_runs": 3,
+  "summary": {
+    "cases": [
+      {
+        "case_id": "meeting_deadline_v1",
+        "scene": "meeting_delivery",
+        "runs": 3,
+        "pass_rate": 1.0,
+        "pass_all_runs": true,
+        "latency_p50_ms": 42.226,
+        "average_tool_calls": 1.0,
+        "fallback_rate": 0.0
+      },
+      {
+        "case_id": "data_risk_v1",
+        "scene": "data_insight",
+        "runs": 3,
+        "pass_rate": 1.0,
+        "pass_all_runs": true,
+        "latency_p50_ms": 23.969,
+        "average_tool_calls": 3.0,
+        "fallback_rate": 0.0
+      },
+      {
+        "case_id": "desktop_archive_v1",
+        "scene": "desktop_execution",
+        "runs": 3,
+        "pass_rate": 1.0,
+        "pass_all_runs": true,
+        "latency_p50_ms": 44.736,
+        "average_tool_calls": 4.0,
+        "fallback_rate": 0.0
+      }
+    ],
+    "all_runs_passed": true
+  },
+  "records": [
+    {
+      "case_id": "meeting_deadline_v1",
+      "scene": "meeting_delivery",
+      "attempt": 1,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 42.559,
+      "tool_calls": 1,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "meeting_deadline_v1",
+      "scene": "meeting_delivery",
+      "attempt": 2,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 42.226,
+      "tool_calls": 1,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "meeting_deadline_v1",
+      "scene": "meeting_delivery",
+      "attempt": 3,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 41.688,
+      "tool_calls": 1,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "data_risk_v1",
+      "scene": "data_insight",
+      "attempt": 1,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 24.866,
+      "tool_calls": 3,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "data_risk_v1",
+      "scene": "data_insight",
+      "attempt": 2,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 23.969,
+      "tool_calls": 3,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "data_risk_v1",
+      "scene": "data_insight",
+      "attempt": 3,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 22.008,
+      "tool_calls": 3,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "desktop_archive_v1",
+      "scene": "desktop_execution",
+      "attempt": 1,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 44.736,
+      "tool_calls": 4,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "desktop_archive_v1",
+      "scene": "desktop_execution",
+      "attempt": 2,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 49.034,
+      "tool_calls": 4,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    },
+    {
+      "case_id": "desktop_archive_v1",
+      "scene": "desktop_execution",
+      "attempt": 3,
+      "passed": true,
+      "failures": [],
+      "latency_ms": 43.429,
+      "tool_calls": 4,
+      "success_rate": 1.0,
+      "fallback_rate": 0.0
+    }
+  ]
+}

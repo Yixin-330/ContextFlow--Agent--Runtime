@@ -1,0 +1,32 @@
+{
+  "benchmark": "ContextFlow A/B File Search Smoke",
+  "generated_at": "2026-08-12T01:47:54.522200+00:00",
+  "records": [
+    {
+      "adapter": "native_openclaw",
+      "success": true,
+      "outcome_verified": true,
+      "latency_ms": 12531.852,
+      "first_response_ms": 12531.852,
+      "tool_calls": 0,
+      "fallback_count": 0,
+      "finish_reason": "stop",
+      "model": "openclaw",
+      "error": null,
+      "answer": "搜索完成。\n\n**结果：**\n- 命中 **1** 个文件\n- 相对路径：`meeting-notes.txt`"
+    },
+    {
+      "adapter": "contextflow_openclaw",
+      "success": true,
+      "outcome_verified": true,
+      "latency_ms": 5990.082,
+      "first_response_ms": 5990.082,
+      "tool_calls": 0,
+      "fallback_count": 0,
+      "finish_reason": "stop",
+      "model": "openclaw",
+      "error": null,
+      "answer": "搜索完成。在目录 \"C:\\Users\\Lenovo\\Documents\\摩尔线程个人工作智能体\\ContextFlow\\demo_desktop\" 中，文件名包含 \"notes\" 的文件命中 1 个，相对路径为：\n\n- meeting-notes.txt（252 字节，修改时间 2026-08-10T04:45:39）\n\n本次为只读搜索，未修改任何文件。"
+    }
+  ]
+}

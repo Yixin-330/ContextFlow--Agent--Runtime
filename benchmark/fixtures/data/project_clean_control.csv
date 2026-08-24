@@ -1,0 +1,13 @@
+record_id,workstream,owner,progress_pct,remaining_hours,risk_score,budget_variance_pct
+C01,AgentCore,张敏,60,12,18,2
+C02,LocalRAG,李伟,62,11,19,3
+C03,DataInsight,王芳,64,10,20,4
+C04,OfficeFlow,陈杰,66,9,21,5
+C05,DeliveryPlanner,赵磊,68,8,22,6
+C06,MTClawIntegration,周宁,70,7,23,7
+C07,GatewayHealth,孙悦,72,6,24,2
+C08,SessionBridge,吴迪,74,5,25,3
+C09,Dashboard,郑欣,76,4,26,4
+C10,Benchmark,钱坤,78,3,27,5
+C11,Deployment,何静,80,2,28,6
+C12,Documentation,郭晨,82,1,29,7

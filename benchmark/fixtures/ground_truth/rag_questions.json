@@ -1,0 +1,63 @@
+[
+  {
+    "id": "rag_runtime_roles_v1",
+    "question": "根据本地资料，OpenClaw、MTClaw 和 ContextFlow 分别负责什么？请给出来源文件名。",
+    "required_claims": ["OpenClaw", "MTClaw", "ContextFlow"],
+    "required_any_of": [["state", "状态"], ["workflow", "工作流"]],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_router_fallback_v1",
+    "question": "根据本地资料，MTClaw Function Router 在什么情况下会交给上游模型？请给出来源文件名。",
+    "required_claims": ["unmatched", "complex", "upstream"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_confirmation_v1",
+    "question": "根据本地资料，ContextFlow 哪些动作需要用户明确确认？请给出来源文件名。",
+    "required_claims": ["mail", "calendar", "external", "confirmation"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_meeting_trigger_v1",
+    "question": "根据本地资料，会议纪要到达后如何从 meeting_ended 升级为 deadline_risk？请给出来源文件名。",
+    "required_claims": ["meeting_ended", "numeric deadline", "actionable tasks", "deadline_risk"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_agents_v1",
+    "question": "根据本地资料，会议后的三个状态触发 Agent 分别做什么？请给出来源文件名。",
+    "required_claims": ["MeetingActionAgent", "LocalRAGAgent", "DeliveryPlannerAgent"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_dedup_v1",
+    "question": "根据本地资料，重复到达同一会议文件时系统如何处理？请给出来源文件名。",
+    "required_claims": ["deduplicated", "duplicate drafts"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_data_v1",
+    "question": "根据本地资料，DataInsightAgent 可以处理哪些文件并发现哪些风险？请给出来源文件名。",
+    "required_claims": ["CSV", "XLSX", "missing", "outliers"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_session_isolation_v1",
+    "question": "根据本地资料，知识库和数据如何避免跨用户会话泄露？请给出来源文件名。",
+    "required_claims": ["session-isolated", "not visible"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_archive_safety_v1",
+    "question": "根据本地资料，桌面归档的安全执行顺序是什么？请给出来源文件名。",
+    "required_claims": ["search", "plan", "confirm", "execute", "undo"],
+    "required_source": "contextflow_reference.md"
+  },
+  {
+    "id": "rag_scope_boundary_v1",
+    "question": "根据本地资料，当前原型是否已经自动写入外部任务系统？请给出来源文件名。",
+    "required_claims": ["stub", "not", "automatic"],
+    "required_source": "contextflow_reference.md"
+  }
+]

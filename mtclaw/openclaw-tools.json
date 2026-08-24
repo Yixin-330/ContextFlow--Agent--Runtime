@@ -1,0 +1,711 @@
+{
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "context_ingest_event",
+        "description": "Record one trusted calendar, task, focus, desktop-file, meeting-notes, or data-file observation and infer the current ContextFlow state. event_id is idempotent.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "event_type": {
+              "type": "string",
+              "enum": [
+                "calendar.meeting_started",
+                "calendar.meeting_ended",
+                "calendar.deadline_changed",
+                "task.progress_changed",
+                "user.focus_started",
+                "user.focus_ended",
+                "activity.active",
+                "activity.idle",
+                "desktop.file_changed",
+                "document.meeting_notes_imported",
+                "data.file_ready"
+              ]
+            },
+            "source": {
+              "type": "string"
+            },
+            "occurred_at": {
+              "type": "string"
+            },
+            "attributes": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "session_key",
+            "event_type",
+            "source"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "context_simulate_calendar",
+        "description": "Use when the user naturally says a meeting started or ended, or asks to simulate a calendar deadline change. Convert the statement into a trusted calendar event and infer ContextFlow state; do not call context_update_state separately.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "meeting_started",
+                "meeting_ended",
+                "deadline_changed"
+              ]
+            },
+            "attributes": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "hours_remaining": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "completion": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "occurred_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "kind"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "context_import_meeting_notes",
+        "description": "Import a local .txt or .md meeting-notes file as an idempotent observed event and run the safe meeting orchestration. It triggers MeetingActionAgent, read-only RAG, and a delivery draft when deadline evidence exists. It never sends or writes externally.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "occurred_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "context_simulate_meeting_end",
+        "description": "Run the same idempotent state-triggered meeting orchestration as a sensed meeting-notes file, using supplied demo meeting text. It triggers MeetingActionAgent and, when an explicit deadline and actions are present, LocalRAGAgent and DeliveryPlannerAgent. It creates reviewable drafts only and never performs external actions.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "meeting_title": {
+              "type": "string"
+            },
+            "meeting_text": {
+              "type": "string"
+            },
+            "simulation_key": {
+              "type": "string",
+              "description": "Stable demo identity. Reusing it prevents duplicate events and drafts."
+            },
+            "event_id": {
+              "type": "string"
+            },
+            "occurred_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "meeting_title",
+            "meeting_text"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "context_get_state",
+        "description": "Inspect the current ContextFlow state only when the user explicitly asks about status. Do not use it as a precondition for meeting, delivery, data, RAG, or desktop tasks: invoke the matching task tool directly.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string",
+              "description": "Stable OpenClaw session key injected by session-bridge."
+            }
+          },
+          "required": [
+            "session_key"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "context_update_state",
+        "description": "Store an explicit ContextFlow work or opportunity state when a trusted event occurs, such as meeting ended, deadline risk, focus mode, data ready, or idle.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "idle",
+                "meeting_ended",
+                "deadline_risk",
+                "focus_mode",
+                "data_ready_for_analysis"
+              ]
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "session_key",
+            "state",
+            "evidence"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "workflow_prepare_meeting",
+        "description": "Create a reviewable meeting follow-up workflow draft when the user says a meeting has ended. The tool records meeting_ended internally; do not call context_get_state or context_update_state first. It only prepares drafts and never sends external messages.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "meeting_title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "meeting_title"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "workflow_plan_delivery",
+        "description": "Create a reviewable minimum-delivery task DAG from an explicit at-risk deadline request. Call this tool directly: it records deadline_risk internally when the session has no state, so do not call context_get_state or context_update_state first. Optional task_specs enables a validated dependency graph, critical-path calculation, and ready-action recommendations. Do not call this after office_process_meeting has already returned orchestration.delivery.status=planned for the same meeting; present that existing draft instead. It never writes to a task system without confirmation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "goal": {
+              "type": "string"
+            },
+            "deadline_hours": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "existing_tasks": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "task_specs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "depends_on": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "effort_hours": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "todo",
+                      "done",
+                      "failed",
+                      "blocked"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "title"
+                ]
+              }
+            }
+          },
+          "required": [
+            "session_key",
+            "goal",
+            "deadline_hours"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "workflow_confirm_action",
+        "description": "Approve or reject a ContextFlow workflow draft that is waiting for a user decision. Use only after the user explicitly confirms or rejects the proposed external action.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "draft_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "approved",
+                "rejected"
+              ]
+            }
+          },
+          "required": [
+            "session_key",
+            "draft_id",
+            "decision"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "rag_ingest",
+        "description": "Ingest a local text or Markdown document into the session-isolated ContextFlow knowledge space. Provide either content with title, or source_path for a local .txt/.md file. This tool only reads local material and creates a local index.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "document_id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            },
+            "source_name": {
+              "type": "string"
+            },
+            "source_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "document_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "rag_search",
+        "description": "Search the session-isolated local ContextFlow knowledge space and return ranked source-cited excerpts. Use only when the user explicitly asks to search, find evidence, or return matching excerpts and sources. Do not use it as a required precursor to rag_answer.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            }
+          },
+          "required": [
+            "session_key",
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "rag_answer",
+        "description": "Directly answer a question from session-isolated local ContextFlow knowledge with source file and chunk citations. This tool performs retrieval internally, so call it directly without calling rag_search first. If evidence is missing, report that no local evidence was found instead of inventing an answer.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            }
+          },
+          "required": [
+            "session_key",
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "office_process_meeting",
+        "description": "Turn a just-ended meeting's text into a reviewable office workflow: deterministic summary, decisions, action items, and an unsent email draft. It records meeting_ended internally, so call it directly rather than context_get_state or context_update_state. It never sends a message.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "meeting_title": {
+              "type": "string"
+            },
+            "meeting_text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "meeting_title",
+            "meeting_text"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "delivery_replan",
+        "description": "Replan a structured delivery DAG after one or more tasks fail. The result remains a reviewable draft and reports whether upstream help is required.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "draft_id": {
+              "type": "string"
+            },
+            "failed_task_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "session_key",
+            "draft_id",
+            "failed_task_ids"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "data_profile",
+        "description": "Read a local CSV, TSV, or XLSX file and produce a deterministic schema and numeric profile. The dataset remains session-isolated and is stored for follow-up analysis and chart generation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "dataset_id": {
+              "type": "string"
+            },
+            "source_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "dataset_id",
+            "source_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "data_analyze",
+        "description": "Detect deterministic data risks for a profiled local dataset: duplicate rows, high missingness, negative values, and numeric outliers. Use for CSV/XLSX risk analysis.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "dataset_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "dataset_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "data_chart",
+        "description": "Generate a local SVG bar chart from a profiled dataset. The result contains only a local artifact path and does not modify the source spreadsheet.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "dataset_id": {
+              "type": "string"
+            },
+            "x_column": {
+              "type": "string"
+            },
+            "y_column": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "dataset_id",
+            "x_column",
+            "y_column"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "desktop_search_files",
+        "description": "Read-only file-name search inside an explicit existing root_path. Returns relative paths and basic metadata; it never changes files.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "root_path": {
+              "type": "string"
+            },
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            }
+          },
+          "required": [
+            "session_key",
+            "root_path",
+            "query"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "desktop_plan_archive",
+        "description": "Create, but do not execute, a reversible local archive plan for explicitly selected relative file paths under root_path. Show the returned plan entries to the user before confirmation.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "root_path": {
+              "type": "string"
+            },
+            "relative_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "archive_folder": {
+              "type": "string",
+              "description": "One simple relative folder name; defaults to .contextflow_archive."
+            }
+          },
+          "required": [
+            "session_key",
+            "root_path",
+            "relative_paths"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "desktop_confirm_archive",
+        "description": "Record the user's explicit approval or rejection of an archive plan. A plan cannot move any file until it is approved.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "plan_id": {
+              "type": "string"
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "approved",
+                "rejected"
+              ]
+            }
+          },
+          "required": [
+            "session_key",
+            "plan_id",
+            "decision"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "desktop_execute_archive",
+        "description": "Execute an already approved archive plan by moving its files locally. No file is deleted; the result includes an operation_id for full undo.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "plan_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "plan_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "desktop_undo_archive",
+        "description": "Undo one completed local archive operation, returning each recorded file to its original path when that path is free.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "session_key": {
+              "type": "string"
+            },
+            "operation_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_key",
+            "operation_id"
+          ]
+        }
+      }
+    }
+  ]
+}

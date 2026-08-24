@@ -1,0 +1,15 @@
+{
+  "native_openclaw": {
+    "base_url": "http://127.0.0.1:18789/v1",
+    "model": "your-direct-upstream-model",
+    "api_key_env": "CONTEXTFLOW_BENCHMARK_GATEWAY_TOKEN",
+    "timeout_seconds": 180
+  },
+  "contextflow_openclaw": {
+    "base_url": "http://127.0.0.1:18789/v1",
+    "model": "function_router/function-router",
+    "api_key_env": "CONTEXTFLOW_BENCHMARK_GATEWAY_TOKEN",
+    "timeout_seconds": 180
+  },
+  "router_trace_url": "http://127.0.0.1:18790/v1/tool_history"
+}

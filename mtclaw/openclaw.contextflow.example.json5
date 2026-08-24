@@ -1,0 +1,33 @@
+// Merge this fragment into ~/.openclaw/openclaw.json.
+// Do not replace an existing OpenClaw configuration wholesale.
+{
+  models: {
+    providers: {
+      function_router: {
+        // Keep this port aligned with mtclaw/config.contextflow.json.
+        baseUrl: "http://127.0.0.1:18791/v1",
+        apiKey: "function-router",
+        api: "openai-completions",
+        models: [
+          {
+            id: "function-router",
+            name: "ContextFlow via MTClaw Function Router"
+          }
+        ]
+      }
+    }
+  },
+  agents: {
+    defaults: {
+      model: {
+        primary: "function_router/function-router"
+      }
+    }
+  },
+  plugins: {
+    allow: ["session-bridge"],
+    entries: {
+      "session-bridge": { enabled: true }
+    }
+  }
+}

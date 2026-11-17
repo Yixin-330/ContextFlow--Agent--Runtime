@@ -41,17 +41,21 @@ def delivery_plan_draft(
     state: dict[str, Any],
     existing_tasks: list[str] | None = None,
     plan: dict[str, Any] | None = None,
+    plan_version: int = 1,
 ) -> dict[str, Any]:
     if state["state"] != "deadline_risk":
         raise ValueError("workflow_plan_delivery requires deadline_risk state")
     if deadline_hours <= 0:
         raise ValueError("deadline_hours must be positive")
+    if plan_version < 1:
+        raise ValueError("plan_version must be positive")
     timestamp = now_iso()
     existing_tasks = existing_tasks or []
     return {
         "draft_id": f"delivery-{uuid4().hex[:12]}",
         "session_key": session_key,
         "workflow_type": "delivery_plan",
+        "plan_version": plan_version,
         "status": "awaiting_review",
         "created_at": timestamp,
         "updated_at": timestamp,

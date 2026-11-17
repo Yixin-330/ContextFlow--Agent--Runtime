@@ -8,13 +8,13 @@
 OpenClaw session
   -> Session Bridge injects a stable session ID
   -> MTClaw Function Router (127.0.0.1:18791)
-  -> ContextFlow functions.jsonl selects one of 22 tools
+  -> ContextFlow functions.jsonl exposes the registered tool schemas
   -> scripts/<tool>.sh -> service/contextflow_cli.py
   -> local SQLite state, workflow, audit, and result JSON
   -> direct response or upstream OpenAI-compatible model
 ```
 
-The single external seam is MTClaw's OpenAI-compatible provider endpoint. OpenClaw only needs the provider URL; ContextFlow implementation details stay behind MTClaw tool schemas and wrappers.
+The single external seam is MTClaw's OpenAI-compatible provider endpoint. OpenClaw only needs the provider URL; ContextFlow implementation details stay behind MTClaw tool schemas and wrappers. Behind `contextflow_cli.py`, the Python Runtime owns Context State, Pipeline checkpoints, Tool Gateway operations, approvals and audit traces; Router fallback does not replace Runtime resume or idempotency.
 
 ## One-time installation on Ubuntu 22.04 / MTT AIBOOK
 

@@ -39,7 +39,9 @@ class EventStateLayer:
             context = previous or self.recompute(session_key)
             return {"accepted": False, "deduplicated": True, "event": event,
                     "context": context, "state_changed": False}
-        context = self.recompute(session_key)
+        # Evaluate a newly observed signal at its observation time.  This keeps
+        # calendar adapters deterministic when they supply an explicit clock.
+        context = self.recompute(session_key, now=self._parse_time(event["occurred_at"]))
         changed = previous is None or previous["state"] != context["state"]
         if changed:
             self.store.record_state_transition({

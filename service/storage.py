@@ -33,6 +33,7 @@ class Storage:
                   draft_id TEXT PRIMARY KEY,
                   session_key TEXT NOT NULL,
                   workflow_type TEXT NOT NULL,
+                  plan_version INTEGER NOT NULL DEFAULT 1,
                   status TEXT NOT NULL,
                   payload_json TEXT NOT NULL,
                   created_at TEXT NOT NULL,
@@ -180,11 +181,97 @@ class Storage:
                   updated_at TEXT NOT NULL,
                   PRIMARY KEY(provider,account_key)
                 );
+                CREATE TABLE IF NOT EXISTS runtime_tasks (
+                  task_id TEXT PRIMARY KEY,
+                  session_key TEXT NOT NULL,
+                  goal TEXT NOT NULL,
+                  workflow_version TEXT NOT NULL,
+                  status TEXT NOT NULL,
+                  created_at TEXT NOT NULL,
+                  updated_at TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_runtime_tasks_session
+                  ON runtime_tasks(session_key, created_at DESC);
+                CREATE TABLE IF NOT EXISTS runtime_executions (
+                  execution_id TEXT PRIMARY KEY,
+                  task_id TEXT NOT NULL,
+                  status TEXT NOT NULL,
+                  current_node TEXT,
+                  budget_json TEXT NOT NULL,
+                  checkpoint_version INTEGER NOT NULL,
+                  created_at TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  FOREIGN KEY(task_id) REFERENCES runtime_tasks(task_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_runtime_executions_task
+                  ON runtime_executions(task_id, created_at DESC);
+                CREATE TABLE IF NOT EXISTS runtime_checkpoints (
+                  checkpoint_id TEXT PRIMARY KEY,
+                  execution_id TEXT NOT NULL,
+                  version INTEGER NOT NULL,
+                  current_node TEXT,
+                  completed_nodes_json TEXT NOT NULL,
+                  pending_nodes_json TEXT NOT NULL,
+                  context_snapshot_json TEXT NOT NULL,
+                  tool_results_json TEXT NOT NULL,
+                  created_at TEXT NOT NULL,
+                  UNIQUE(execution_id, version),
+                  FOREIGN KEY(execution_id) REFERENCES runtime_executions(execution_id)
+                );
+                CREATE TABLE IF NOT EXISTS runtime_operations (
+                  operation_id TEXT PRIMARY KEY,
+                  task_id TEXT NOT NULL,
+                  execution_id TEXT NOT NULL,
+                  tool_name TEXT NOT NULL,
+                  idempotency_key TEXT NOT NULL,
+                  status TEXT NOT NULL,
+                  request_json TEXT NOT NULL,
+                  result_json TEXT,
+                  error_json TEXT,
+                  created_at TEXT NOT NULL,
+                  updated_at TEXT NOT NULL,
+                  UNIQUE(task_id, idempotency_key),
+                  FOREIGN KEY(task_id) REFERENCES runtime_tasks(task_id),
+                  FOREIGN KEY(execution_id) REFERENCES runtime_executions(execution_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_runtime_operations_execution
+                  ON runtime_operations(execution_id, created_at);
+                CREATE TABLE IF NOT EXISTS runtime_approvals (
+                  approval_id TEXT PRIMARY KEY,
+                  task_id TEXT NOT NULL,
+                  execution_id TEXT NOT NULL,
+                  plan_version INTEGER NOT NULL,
+                  operation_ids_json TEXT NOT NULL,
+                  plan_reference TEXT,
+                  decision TEXT NOT NULL,
+                  created_at TEXT NOT NULL,
+                  decided_at TEXT,
+                  FOREIGN KEY(task_id) REFERENCES runtime_tasks(task_id),
+                  FOREIGN KEY(execution_id) REFERENCES runtime_executions(execution_id)
+                );
+                CREATE TABLE IF NOT EXISTS runtime_traces (
+                  trace_id TEXT PRIMARY KEY,
+                  execution_id TEXT NOT NULL,
+                  event_type TEXT NOT NULL,
+                  payload_json TEXT NOT NULL,
+                  recorded_at TEXT NOT NULL,
+                  FOREIGN KEY(execution_id) REFERENCES runtime_executions(execution_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_runtime_traces_execution
+                  ON runtime_traces(execution_id, recorded_at);
                 """
             )
+            self._ensure_column(connection, "workflow_drafts", "plan_version", "INTEGER NOT NULL DEFAULT 1")
+            self._ensure_column(connection, "runtime_approvals", "plan_reference", "TEXT")
             connection.commit()
         finally:
             connection.close()
+
+    @staticmethod
+    def _ensure_column(connection: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+        columns = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+        if column not in columns:
+            connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
     def save_state(self, state: dict[str, Any]) -> None:
         connection = self._connect()
@@ -285,9 +372,9 @@ class Storage:
         connection = self._connect()
         try:
             connection.execute(
-                """INSERT INTO workflow_drafts(draft_id,session_key,workflow_type,status,payload_json,created_at,updated_at)
-                VALUES(:draft_id,:session_key,:workflow_type,:status,:payload_json,:created_at,:updated_at)""",
-                {**draft, "payload_json": json.dumps(draft["payload"], ensure_ascii=False)},
+                """INSERT INTO workflow_drafts(draft_id,session_key,workflow_type,plan_version,status,payload_json,created_at,updated_at)
+                VALUES(:draft_id,:session_key,:workflow_type,:plan_version,:status,:payload_json,:created_at,:updated_at)""",
+                {**draft, "plan_version": draft.get("plan_version", 1), "payload_json": json.dumps(draft["payload"], ensure_ascii=False)},
             )
             connection.commit()
         finally:
@@ -484,6 +571,243 @@ class Storage:
         finally:
             connection.close()
 
+    def save_runtime_task(self, task: dict[str, Any]) -> None:
+        self._save_runtime_record(
+            """INSERT INTO runtime_tasks(task_id,session_key,goal,workflow_version,status,created_at,updated_at)
+            VALUES(:task_id,:session_key,:goal,:workflow_version,:status,:created_at,:updated_at)""",
+            task,
+        )
+
+    def get_runtime_task(self, task_id: str) -> dict[str, Any] | None:
+        return self._runtime_row("SELECT * FROM runtime_tasks WHERE task_id=?", (task_id,))
+
+    def update_runtime_task_status(self, task_id: str, *, status: str, updated_at: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            connection.execute(
+                "UPDATE runtime_tasks SET status=?,updated_at=? WHERE task_id=?",
+                (status, updated_at, task_id),
+            )
+            row = connection.execute("SELECT * FROM runtime_tasks WHERE task_id=?", (task_id,)).fetchone()
+            connection.commit()
+        finally:
+            connection.close()
+        return dict(row) if row is not None else None
+
+    def save_runtime_execution(self, execution: dict[str, Any]) -> None:
+        self._save_runtime_record(
+            """INSERT INTO runtime_executions(
+              execution_id,task_id,status,current_node,budget_json,checkpoint_version,created_at,updated_at
+            ) VALUES(
+              :execution_id,:task_id,:status,:current_node,:budget_json,:checkpoint_version,:created_at,:updated_at
+            )""",
+            {**execution, "budget_json": json.dumps(execution["budget"], ensure_ascii=False)},
+        )
+
+    def get_runtime_execution(self, execution_id: str) -> dict[str, Any] | None:
+        row = self._runtime_row("SELECT * FROM runtime_executions WHERE execution_id=?", (execution_id,))
+        if row is not None:
+            row["budget"] = json.loads(row.pop("budget_json"))
+        return row
+
+    def update_runtime_execution(self, execution_id: str, *, status: str, current_node: str | None, checkpoint_version: int, updated_at: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            connection.execute(
+                """UPDATE runtime_executions SET status=?,current_node=?,checkpoint_version=?,updated_at=?
+                WHERE execution_id=?""",
+                (status, current_node, checkpoint_version, updated_at, execution_id),
+            )
+            row = connection.execute("SELECT * FROM runtime_executions WHERE execution_id=?", (execution_id,)).fetchone()
+            connection.commit()
+        finally:
+            connection.close()
+        if row is None:
+            return None
+        result = dict(row)
+        result["budget"] = json.loads(result.pop("budget_json"))
+        return result
+
+    def save_runtime_checkpoint(self, checkpoint: dict[str, Any]) -> None:
+        self._save_runtime_record(
+            """INSERT INTO runtime_checkpoints(
+              checkpoint_id,execution_id,version,current_node,completed_nodes_json,pending_nodes_json,
+              context_snapshot_json,tool_results_json,created_at
+            ) VALUES(
+              :checkpoint_id,:execution_id,:version,:current_node,:completed_nodes_json,:pending_nodes_json,
+              :context_snapshot_json,:tool_results_json,:created_at
+            )""",
+            {
+                **checkpoint,
+                "completed_nodes_json": json.dumps(checkpoint["completed_nodes"], ensure_ascii=False),
+                "pending_nodes_json": json.dumps(checkpoint["pending_nodes"], ensure_ascii=False),
+                "context_snapshot_json": json.dumps(checkpoint["context_snapshot"], ensure_ascii=False),
+                "tool_results_json": json.dumps(checkpoint["tool_results"], ensure_ascii=False),
+            },
+        )
+
+    def latest_runtime_checkpoint(self, execution_id: str) -> dict[str, Any] | None:
+        row = self._runtime_row(
+            "SELECT * FROM runtime_checkpoints WHERE execution_id=? ORDER BY version DESC LIMIT 1",
+            (execution_id,),
+        )
+        if row is not None:
+            for field in ("completed_nodes", "pending_nodes", "context_snapshot", "tool_results"):
+                row[field] = json.loads(row.pop(f"{field}_json"))
+        return row
+
+    def begin_runtime_operation(self, operation: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+        """Create an operation once per task/idempotency key and return whether it was new."""
+        connection = self._connect()
+        try:
+            cursor = connection.execute(
+                """INSERT OR IGNORE INTO runtime_operations(
+                  operation_id,task_id,execution_id,tool_name,idempotency_key,status,request_json,
+                  result_json,error_json,created_at,updated_at
+                ) VALUES(
+                  :operation_id,:task_id,:execution_id,:tool_name,:idempotency_key,:status,:request_json,
+                  NULL,NULL,:created_at,:updated_at
+                )""",
+                {**operation, "request_json": json.dumps(operation["request"], ensure_ascii=False)},
+            )
+            row = connection.execute(
+                "SELECT * FROM runtime_operations WHERE task_id=? AND idempotency_key=?",
+                (operation["task_id"], operation["idempotency_key"]),
+            ).fetchone()
+            connection.commit()
+        finally:
+            connection.close()
+        assert row is not None
+        return self._decode_runtime_operation(dict(row)), cursor.rowcount == 1
+
+    def prepare_runtime_operation(self, operation: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+        """Persist an immutable requested operation before it is submitted for approval."""
+        connection = self._connect()
+        try:
+            cursor = connection.execute(
+                """INSERT OR IGNORE INTO runtime_operations(
+                  operation_id,task_id,execution_id,tool_name,idempotency_key,status,request_json,
+                  result_json,error_json,created_at,updated_at
+                ) VALUES(
+                  :operation_id,:task_id,:execution_id,:tool_name,:idempotency_key,'awaiting_approval',:request_json,
+                  NULL,NULL,:created_at,:updated_at
+                )""",
+                {**operation, "request_json": json.dumps(operation["request"], ensure_ascii=False)},
+            )
+            row = connection.execute(
+                "SELECT * FROM runtime_operations WHERE task_id=? AND idempotency_key=?",
+                (operation["task_id"], operation["idempotency_key"]),
+            ).fetchone()
+            connection.commit()
+        finally:
+            connection.close()
+        assert row is not None
+        return self._decode_runtime_operation(dict(row)), cursor.rowcount == 1
+
+    def get_runtime_operation(self, operation_id: str) -> dict[str, Any] | None:
+        row = self._runtime_row("SELECT * FROM runtime_operations WHERE operation_id=?", (operation_id,))
+        return self._decode_runtime_operation(row) if row is not None else None
+
+    def claim_prepared_runtime_operation(self, operation_id: str, *, updated_at: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            cursor = connection.execute(
+                """UPDATE runtime_operations SET status='running',updated_at=?
+                WHERE operation_id=? AND status='awaiting_approval'""",
+                (updated_at, operation_id),
+            )
+            row = connection.execute("SELECT * FROM runtime_operations WHERE operation_id=?", (operation_id,)).fetchone()
+            connection.commit()
+        finally:
+            connection.close()
+        if row is None or cursor.rowcount != 1:
+            return None
+        return self._decode_runtime_operation(dict(row))
+
+    def finish_runtime_operation(self, operation_id: str, *, status: str, result: dict[str, Any] | None, error: dict[str, Any] | None, updated_at: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            connection.execute(
+                """UPDATE runtime_operations SET status=?,result_json=?,error_json=?,updated_at=?
+                WHERE operation_id=?""",
+                (
+                    status,
+                    json.dumps(result, ensure_ascii=False) if result is not None else None,
+                    json.dumps(error, ensure_ascii=False) if error is not None else None,
+                    updated_at,
+                    operation_id,
+                ),
+            )
+            row = connection.execute("SELECT * FROM runtime_operations WHERE operation_id=?", (operation_id,)).fetchone()
+            connection.commit()
+        finally:
+            connection.close()
+        return self._decode_runtime_operation(dict(row)) if row is not None else None
+
+    def save_runtime_approval(self, approval: dict[str, Any]) -> None:
+        self._save_runtime_record(
+            """INSERT INTO runtime_approvals(
+              approval_id,task_id,execution_id,plan_version,operation_ids_json,plan_reference,decision,created_at,decided_at
+            ) VALUES(
+              :approval_id,:task_id,:execution_id,:plan_version,:operation_ids_json,:plan_reference,:decision,:created_at,:decided_at
+            )""",
+            {**approval, "plan_reference": approval.get("plan_reference"), "operation_ids_json": json.dumps(approval["operation_ids"], ensure_ascii=False)},
+        )
+
+    def get_runtime_approval(self, approval_id: str) -> dict[str, Any] | None:
+        row = self._runtime_row("SELECT * FROM runtime_approvals WHERE approval_id=?", (approval_id,))
+        if row is not None:
+            row["operation_ids"] = json.loads(row.pop("operation_ids_json"))
+        return row
+
+    def decide_runtime_approval(self, approval_id: str, *, decision: str, decided_at: str) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            cursor = connection.execute(
+                """UPDATE runtime_approvals SET decision=?,decided_at=?
+                WHERE approval_id=? AND decision='pending'""",
+                (decision, decided_at, approval_id),
+            )
+            row = connection.execute("SELECT * FROM runtime_approvals WHERE approval_id=?", (approval_id,)).fetchone()
+            connection.commit()
+        finally:
+            connection.close()
+        if row is None or cursor.rowcount != 1:
+            return None
+        result = dict(row)
+        result["operation_ids"] = json.loads(result.pop("operation_ids_json"))
+        return result
+
+    def append_runtime_trace(self, trace: dict[str, Any]) -> None:
+        self._save_runtime_record(
+            """INSERT INTO runtime_traces(trace_id,execution_id,event_type,payload_json,recorded_at)
+            VALUES(:trace_id,:execution_id,:event_type,:payload_json,:recorded_at)""",
+            {**trace, "payload_json": json.dumps(trace["payload"], ensure_ascii=False)},
+        )
+
+    def _save_runtime_record(self, statement: str, values: dict[str, Any]) -> None:
+        connection = self._connect()
+        try:
+            connection.execute(statement, values)
+            connection.commit()
+        finally:
+            connection.close()
+
+    def _runtime_row(self, statement: str, values: tuple[Any, ...]) -> dict[str, Any] | None:
+        connection = self._connect()
+        try:
+            row = connection.execute(statement, values).fetchone()
+        finally:
+            connection.close()
+        return dict(row) if row is not None else None
+
+    @staticmethod
+    def _decode_runtime_operation(operation: dict[str, Any]) -> dict[str, Any]:
+        operation["request"] = json.loads(operation.pop("request_json"))
+        operation["result"] = json.loads(operation.pop("result_json")) if operation["result_json"] else None
+        operation["error"] = json.loads(operation.pop("error_json")) if operation["error_json"] else None
+        return operation
+
     def clear_session(self, session_key: str) -> dict[str, int]:
         """Remove one isolated session while leaving every other session untouched."""
         tables = {
@@ -501,6 +825,31 @@ class Storage:
         connection = self._connect()
         counts: dict[str, int] = {}
         try:
+            execution_rows = connection.execute(
+                """SELECT execution_id FROM runtime_executions
+                WHERE task_id IN (SELECT task_id FROM runtime_tasks WHERE session_key=?)""",
+                (session_key,),
+            ).fetchall()
+            execution_ids = [row["execution_id"] for row in execution_rows]
+            if execution_ids:
+                placeholders = ",".join("?" for _ in execution_ids)
+                for table in ("runtime_traces", "runtime_checkpoints", "runtime_approvals", "runtime_operations"):
+                    cursor = connection.execute(
+                        f"DELETE FROM {table} WHERE execution_id IN ({placeholders})",
+                        execution_ids,
+                    )
+                    counts[table] = cursor.rowcount
+            else:
+                for table in ("runtime_traces", "runtime_checkpoints", "runtime_approvals", "runtime_operations"):
+                    counts[table] = 0
+            cursor = connection.execute(
+                """DELETE FROM runtime_executions
+                WHERE task_id IN (SELECT task_id FROM runtime_tasks WHERE session_key=?)""",
+                (session_key,),
+            )
+            counts["runtime_executions"] = cursor.rowcount
+            cursor = connection.execute("DELETE FROM runtime_tasks WHERE session_key=?", (session_key,))
+            counts["runtime_tasks"] = cursor.rowcount
             for table, column in tables.items():
                 cursor = connection.execute(f"DELETE FROM {table} WHERE {column}=?", (session_key,))
                 counts[table] = cursor.rowcount

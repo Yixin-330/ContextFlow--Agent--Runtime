@@ -1,172 +1,96 @@
 # ContextFlow 提交说明
 
-## 1. 项目概述
+## 1. 项目定位
 
-**ContextFlow** 是一个基于 **OpenClaw + MTClaw Function Router** 的主动式智能体运行时（Agent Runtime）。
-
-它不只等待用户输入指令：当本地会议纪要、数据文件等工作事件出现时，ContextFlow 将事件转换为带证据和置信度的用户工作状态，再根据状态约束 Agent、工具和工作流；高风险外部操作仍必须经用户确认。
-
-核心分工：
+ContextFlow 是一个面向主动式任务 Agent 的 **Runtime & Harness Engineering** 原型。它研究的核心问题是：如何把事件感知转化为可执行工作链路，并让该链路具备状态约束、工具治理、中断恢复、审批控制、幂等执行与可复现评测能力。
 
 ```text
 OpenClaw：自然语言交互与 Agent Gateway
-MTClaw Function Router：轻量工具路由、工具执行、复杂请求上游兜底
-ContextFlow：事件感知、状态管理、动态编排、执行回写与本地审计
+MTClaw Function Router：工具路由、短链路执行、上游兜底
+ContextFlow：事件/状态、Pipeline、Tool Gateway、任务生命周期与评测
 ```
+
+ContextFlow 通过 MTClaw 的工具 Schema 和 wrapper 扩展接入，不修改 Router 核心逻辑。
 
 ## 2. 已实现能力
 
-### 2.1 五个垂直 SubAgent
+### 事件与上下文
 
-| SubAgent | 主要能力 |
+- 本地会议/数据文件监听、会议纪要导入和模拟日历事件；
+- 可选 Outlook/Microsoft 365 只读日历 Adapter；
+- 不可变 Sensed Event、带证据和置信度的 Context State、SQLite 审计与会话隔离；
+- 事件身份去重：同一观察重放不会再次触发会后编排。
+
+### 6 类专用 Agent
+
+| Agent | 已实现能力 |
 |---|---|
-| MeetingActionAgent | 会议总结、决策与待办提取、跟进草稿 |
-| LocalRAGAgent | 会话隔离的本地知识导入、检索与来源引用 |
-| DeliveryPlannerAgent | 任务 DAG、关键路径、交付计划与重排 |
-| DataInsightAgent | CSV/TSV/XLSX 统计分析、风险发现与 SVG 图表 |
-| DesktopExecutorAgent | 文件搜索、归档计划、确认执行、撤销恢复 |
+| ContextSensorAgent | 事件归一化、状态更新、Runtime 控制入口 |
+| MeetingActionAgent | 会议摘要、决策、待办、未发送邮件草稿 |
+| LocalRAGAgent | 本地文档导入、检索、带来源回答 |
+| DeliveryPlannerAgent | 任务 DAG、关键路径、失败后重规划 |
+| DataInsightAgent | CSV/TSV/XLSX 概览、风险、SVG 图表 |
+| DesktopExecutorAgent | 搜索、归档计划、确认、可撤销本地移动 |
 
-### 2.2 三个工作场景
+### Runtime 与可靠性
 
-1. **会议交付闭环**：会议纪要进入本机目录 → `meeting_ended` → 识别明确截止期 → `deadline_risk` → 会议总结、资料关联、交付计划草稿。
-2. **数据洞察**：数据文件进入目录 → `data_ready_for_analysis` → 数据概览、风险发现与图表输出。
-3. **桌面安全执行**：文件搜索 → 归档计划 → 用户确认 → 执行 → 一键撤销。
+- 会后确定性 Pipeline：`process_meeting → retrieve_evidence → plan_delivery`；
+- 任务模型：`Task → Execution → Checkpoint → Operation → Approval → Trace`；
+- Checkpoint / Resume：会后链路在节点后中断时从最近成功节点继续；
+- Tool Gateway：Schema 校验、Agent/状态归属校验、稳定幂等键、统一 Operation 和 Trace；
+- 审批绑定：审批关联 Task、Execution、Operation、计划草稿与版本；
+- 版本失效：重规划产生新版本并废弃旧草稿，旧审批不能执行旧计划绑定的 Operation。
 
-### 2.3 MTClaw 二次开发方式
+## 3. 会后主链路
 
-ContextFlow 不修改 MTClaw Function Router 的核心路由逻辑，而是通过以下扩展点接入：
+```text
+新会议纪要 / meeting-ended
+  -> event_id 去重
+  -> meeting_ended
+  -> process_meeting（会议草稿）
+  -> retrieve_evidence（Local RAG，只读）
+  -> [明确截止期 + 待办] deadline_risk
+  -> plan_delivery（交付草稿）
+  -> 审核边界
+```
 
-- `mtclaw/functions.jsonl`：注册 ContextFlow 工具 Schema；
-- `mtclaw/scripts/*.sh`：将 Router 工具调用转发到 ContextFlow Runtime；
-- `service/runtime.py`：统一调度状态、Agent、工作流与审计；
-- MTClaw Session Bridge：向 Router 注入稳定会话标识，保证状态、RAG 与草稿隔离；
-- Router 短链路：命中明确、本地、低风险能力时走本地工具；复杂或未匹配请求才交由上游模型处理。
+Pipeline 用于固定、可审计的任务骨架，而不是让模型自由决定所有步骤。每个节点保存 Checkpoint；恢复不会重复创建先前成功节点的草稿。模型推理若后续接入，应放在节点内部，不得绕过 Runtime 控制流。
 
-## 3. 源码结构
+## 4. 副作用安全模型
+
+```text
+计划 v1 -> 准备 Operation -> 审批 -> 执行前二次校验 -> 执行一次
+                            ↑
+                重规划为 v2 后，v1 为 superseded，旧审批失效
+```
+
+当前真实副作用验证对象是本地可撤销归档。邮件发送、日历写入和外部任务系统创建仍为明确 stub，不能表述为已自动执行。为兼容原有 Demo，旧桌面确认链路仍保留；后续应让所有写操作统一走 Runtime 的通用审批路径。
+
+## 5. 代码与运行
 
 ```text
 ContextFlow/
-├─ service/            # Runtime、状态机、Agent、存储、事件接入
-├─ mtclaw/             # 工具 Schema、Bash Wrapper、Router 配置示例
-├─ benchmark/          # 专项 Benchmark、A/B 框架、固定题库与测试资料
-├─ demo_data/          # 数据洞察演示资料
-├─ demo_knowledge/     # 本地 RAG 演示资料
-├─ demo_desktop/       # 桌面执行演示目录
-├─ tests/              # 自动化测试
-└─ docs/               # 部署、架构、场景说明
+├─ service/       # Runtime、Pipeline、Gateway、状态、存储、各领域能力
+├─ tests/         # Runtime、场景、Benchmark 回归
+├─ benchmark/     # 确定性 Benchmark 与 A/B 夹具
+├─ mtclaw/        # Function Router Schema、wrapper、配置示例
+├─ 核心说明文档/  # 架构、事件、Pipeline、评测、集成说明
+└─ docs/          # 领域能力和部署细节
 ```
-
-## 4. 本机运行
-
-### 4.1 环境
-
-- Python 3.11+；
-- 已安装 MTClaw；
-- 已安装并配置 OpenClaw；
-- 路由模型与上游模型均使用 OpenAI-compatible 接口。
-
-本项目的 Runtime 依赖 Python 标准库；MTClaw 与 OpenClaw 请按各自官方说明安装。
-
-### 4.2 配置私有环境变量
-
-请复制 `mtclaw/contextflow.env.example` 到私有目录，例如：
-
-```text
-~/.config/contextflow/contextflow.env
-```
-
-填写路由模型和上游模型的地址、模型名、密钥后再加载。**禁止将密钥、Token 或私有环境文件提交到代码仓库。**
-
-### 4.3 启动 Router
-
-Linux / Ubuntu / MTT AIBOOK：
-
-```bash
-export CONTEXTFLOW_HOME=/opt/contextflow
-cd "$CONTEXTFLOW_HOME/mtclaw"
-source ~/.config/contextflow/contextflow.env
-chmod +x scripts/*.sh run_contextflow_router.sh preflight_contextflow.sh
-./preflight_contextflow.sh
-./run_contextflow_router.sh
-```
-
-Router 默认监听：`http://127.0.0.1:18791`。
-
-检查：
-
-```bash
-curl -s http://127.0.0.1:18791/health
-curl -s http://127.0.0.1:18791/v1/tools
-```
-
-将 `mtclaw/openclaw.contextflow.example.json5` 合并到 OpenClaw 配置，并启用 Session Bridge 后重启 Gateway。
-
-完整说明见：[OpenClaw + MTClaw 集成文档](docs/openclaw-mtclaw-contextflow.md)。
-
-路由、状态感知与状态转移的技术说明见：[MTClaw × ContextFlow Runtime 说明](docs/mtclaw-contextflow-runtime.md)。
-
-完整的评测测试集、指标、日志边界与复现步骤见：[评测协议与复现指南](docs/evaluation-protocol.md)。
-
-整体架构、请求路由、会议结束到交付规划的跨 Agent 时序图见：[MTClaw × ContextFlow Runtime 说明](docs/mtclaw-contextflow-runtime.md)。
-
-## 5. 演示步骤
-
-### 5.1 主 Demo：真实会议资料事件触发
-
-1. 启动本地会议/数据目录监听器；
-2. 将包含明确截止期（如“24 小时内完成”）的 `.md` 或 `.txt` 会议纪要放入 `inbox/meetings`；
-3. 查看 Dashboard 或审计记录中的状态变化：`meeting_ended → deadline_risk`；
-4. 查看三个 Agent 的结果：会议总结、会话本地资料关联、交付 DAG/关键路径草稿；
-5. 验证交付计划处于 `awaiting_review`，没有自动写入外部任务系统。
-
-### 5.2 数据洞察 Demo
-
-导入 `demo_data/project_progress.csv`，执行：`data_profile → data_analyze → data_chart`。预期获得字段统计、风险项与本地 SVG 图表。
-
-### 5.3 桌面安全执行 Demo
-
-执行：`desktop_search_files → desktop_plan_archive → desktop_confirm_archive → desktop_execute_archive → desktop_undo_archive`。验证确认前文件不移动、执行后可撤销恢复。
-
-## 6. 专项 Benchmark
-
-运行命令：
 
 ```powershell
-& ".\ContextFlow\.venv\Scripts\python.exe" ".\ContextFlow\benchmark\runner.py" --runs 3
+cd ContextFlow
+python -m unittest tests.test_task_runtime tests.test_contextflow tests.test_benchmark
+python service/runtime_dashboard.py
 ```
 
-Benchmark 每轮使用独立 SQLite 与临时工作目录，当前包含 9 个确定性 Case：
+本次核心回归：54 项 Runtime、ContextFlow 与 Benchmark 测试通过。专项 Benchmark 和 A/B 夹具可复现；A/B 的端到端模型结论必须在真实 Gateway、固定模型/版本、固定测试资料和重复运行后报告。
 
-- 会议交付：截止期触发、无截止期不过度编排、重复事件去重；
-- 数据洞察：风险发现与图表、数据文件状态感知、会话隔离；
-- 桌面执行：确认后归档与撤销、未确认拦截、路径逃逸拦截。
+## 6. 评测与披露
 
-报告会生成到 `benchmark/reports/`，包含 JSON 原始记录与 Markdown 汇总。
+- 专项 Benchmark 当前有 9 条确定性场景，覆盖会议、数据、桌面安全链路；
+- A/B 框架支持隔离会话、AB/BA 顺序和 Router Trace，但并不等于已经获得在线模型对比成绩；
+- Windows 受限沙箱下，外部 Router 子进程的工作目录可见性和路径编码可能影响部分完整集成用例；核心 Runtime 测试不受该问题影响；
+- 不将本地确定性毫秒级耗时表述为在线模型端到端加速。
 
-> 说明：专项 Benchmark 的耗时是 ContextFlow Runtime 的本地确定性短链路耗时，不等同于端到端模型推理速度。
-
-## 7. A/B 与通用 Benchmark
-
-`benchmark/ab_runner.py` 提供原生 OpenClaw 与 ContextFlow 配置的统一 A/B 入口，支持隔离会话、AB/BA 顺序交替、文件快照、Router Trace 与统一报告。
-
-已提供：
-
-- 文件搜索 A/B Case；
-- 固定本地 RAG 资料与 10 道来源可验证题目；
-- 用于后续接入 ShellBench（原 ClawBench）和 PinchBench 精选任务的评测框架。
-
-执行 A/B 前需在私有配置中填写 Gateway 地址、模型名称与认证信息；不应提交私有配置文件。
-
-## 8. 安全与边界
-
-- 事件均记录来源、证据、置信度与稳定会话标识；
-- RAG、数据与草稿按会话隔离；
-- 外部写入、日历修改、邮件发送必须经用户确认；
-- 桌面文件操作只允许在指定根目录中执行，支持撤销；
-- 当前原型的外部任务系统写入为明确的 stub，不宣称已自动执行。
-
-## 9. 测试环境说明
-
-当前提交版本已在 Windows 本机完成开发与回归验证，包括真实本地文件事件驱动的会议主链路、三类工作场景及专项 Benchmark。
-
-已提供 Linux / Ubuntu / MTT AIBOOK 的部署脚本与验收步骤。最终真机环境应使用相同源码、固定版本和私有模型配置，重新运行核心场景与 Benchmark 后再将结果作为真机性能结论。
+详见：[README](README.md)、[Runtime 核心架构](核心说明文档/mtclaw-contextflow-runtime核心架构.md)、[评测协议](核心说明文档/评测协议、指标与复现指南.md)。

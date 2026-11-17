@@ -15,9 +15,12 @@ try:  # Support package execution and MTClaw's direct script launcher.
     from .event_ingress import EventIngress
     from .local_rag import LocalRAG
     from .meeting_orchestrator import MeetingOrchestrator
+    from .meeting_pipeline import MeetingPipeline
     from .office_flow import OfficeFlow
     from .state_engine import allowed_capabilities, build_state, describe_state
     from .storage import Storage
+    from .task_runtime import TaskRuntime
+    from .tool_gateway import ToolGateway
     from .workflow_engine import delivery_plan_draft, meeting_draft
 except ImportError:  # pragma: no cover - exercised by the direct CLI launcher.
     from agent_registry import find_agent_for_tool, find_agents_for_state
@@ -28,9 +31,12 @@ except ImportError:  # pragma: no cover - exercised by the direct CLI launcher.
     from event_ingress import EventIngress
     from local_rag import LocalRAG
     from meeting_orchestrator import MeetingOrchestrator
+    from meeting_pipeline import MeetingPipeline
     from office_flow import OfficeFlow
     from state_engine import allowed_capabilities, build_state, describe_state
     from storage import Storage
+    from task_runtime import TaskRuntime
+    from tool_gateway import ToolGateway
     from workflow_engine import delivery_plan_draft, meeting_draft
 
 
@@ -47,6 +53,9 @@ class ContextFlowRuntime:
         self.event_state = EventStateLayer(store)
         self.event_ingress = EventIngress(lambda session_key, event: self.event_state.ingest(session_key, event))
         self.meeting_orchestrator = MeetingOrchestrator(self.store, self.rag, self.delivery)
+        self.tasks = TaskRuntime(store)
+        self.tool_gateway = ToolGateway(store, self.tasks, self._execute)
+        self.meeting_pipeline = MeetingPipeline(self.store, self.tasks, self.office, self.meeting_orchestrator)
 
     def dispatch(self, tool_name: str, payload: dict[str, Any]) -> dict[str, Any]:
         session_key = self._require_string(payload, "session_key")
@@ -55,7 +64,7 @@ class ContextFlowRuntime:
         current_state = state["state"] if state else "idle"
         agent = find_agent_for_tool(current_state, tool_name)
         try:
-            result = self._execute(tool_name, payload, state)
+            result = self.tool_gateway.execute(tool_name, payload, state) if self.tool_gateway.handles(tool_name) else self._execute(tool_name, payload, state)
         except ValueError as error:
             self._record(
                 session_key=session_key,
@@ -266,7 +275,45 @@ class ContextFlowRuntime:
                 self._require_string(payload, "meeting_title"),
                 self._require_string(payload, "meeting_text"),
                 sensed,
+                fail_after=payload.get("pipeline_fail_after"),
             )
+        if tool_name == "context_resume_meeting_pipeline":
+            execution_id = self._require_string(payload, "execution_id")
+            pipeline = self.meeting_pipeline.resume(execution_id, fail_after=payload.get("pipeline_fail_after"))
+            return {"result": "ok", **pipeline}
+        if tool_name == "runtime_prepare_approval":
+            requested_tool = self._require_string(payload, "requested_tool")
+            requested_payload = payload.get("requested_payload")
+            plan_version = payload.get("plan_version")
+            draft_id = payload.get("draft_id")
+            if not isinstance(requested_payload, dict):
+                raise ValueError("requested_payload must be an object")
+            if not isinstance(plan_version, int):
+                raise ValueError("plan_version must be an integer")
+            if draft_id is not None and (not isinstance(draft_id, str) or not draft_id.strip()):
+                raise ValueError("draft_id must be a non-empty string when provided")
+            requested = {**requested_payload, "session_key": session_key}
+            prepared = self.tool_gateway.prepare_approval(
+                requested_tool,
+                requested,
+                state,
+                plan_version=plan_version,
+                plan_reference=draft_id.strip() if isinstance(draft_id, str) else None,
+            )
+            return {"result": "ok", **prepared}
+        if tool_name == "runtime_decide_approval":
+            decision = self.tasks.decide_approval(
+                self._require_string(payload, "approval_id"),
+                self._require_string(payload, "decision"),
+            )
+            return {"result": "ok", **decision}
+        if tool_name == "runtime_execute_approved_operation":
+            result = self.tool_gateway.execute_approved(
+                self._require_string(payload, "operation_id"),
+                self._require_string(payload, "approval_id"),
+                state,
+            )
+            return {"result": "ok", **result}
         if tool_name == "context_update_state":
             evidence = payload.get("evidence", [])
             if not isinstance(evidence, list) or not all(isinstance(item, str) for item in evidence):
@@ -388,7 +435,19 @@ class ContextFlowRuntime:
             if not isinstance(failed_ids, list) or not all(isinstance(task_id, str) for task_id in failed_ids):
                 raise ValueError("failed_task_ids must be a string list")
             revised_plan = self.delivery.replan(plan, failed_ids)
-            draft = delivery_plan_draft(session_key, revised_plan["goal"], revised_plan["deadline_hours"], state, plan=revised_plan)
+            if previous["session_key"] != session_key:
+                raise ValueError("delivery draft not found in the current session")
+            if previous["status"] in {"rejected", "superseded"}:
+                raise ValueError("delivery draft is no longer eligible for replanning")
+            self.store.update_draft_status(previous["draft_id"], "superseded", self._now_iso())
+            draft = delivery_plan_draft(
+                session_key,
+                revised_plan["goal"],
+                revised_plan["deadline_hours"],
+                state,
+                plan=revised_plan,
+                plan_version=previous["plan_version"] + 1,
+            )
             self.store.save_draft(draft)
             return {"result": "ok", "draft": draft, "replanned_from": previous["draft_id"], "fallback_required": revised_plan["fallback_required"]}
         if tool_name == "workflow_confirm_action":
@@ -426,6 +485,7 @@ class ContextFlowRuntime:
         meeting_title: str,
         meeting_text: str,
         sensed: dict[str, Any],
+        fail_after: str | None = None,
     ) -> dict[str, Any]:
         """Run the one meeting orchestration path after atomic event acceptance."""
         if sensed["deduplicated"]:
@@ -441,13 +501,21 @@ class ContextFlowRuntime:
                 },
                 "message": "Event already processed; Agent orchestration and draft creation were skipped.",
             }
-        artifacts = self.office.process_meeting(meeting_title, meeting_text)
         meeting_context = sensed["context"]
-        draft = meeting_draft(session_key, meeting_title, meeting_context, artifacts)
-        self.store.save_draft(draft)
-        orchestration = self.meeting_orchestrator.after_meeting(
-            session_key, meeting_title, meeting_text, artifacts,
+        if fail_after is not None and fail_after not in self.meeting_pipeline.nodes:
+            raise ValueError("pipeline_fail_after must name a meeting pipeline node")
+        pipeline = self.meeting_pipeline.start(
+            session_key=session_key,
+            meeting_title=meeting_title,
+            meeting_text=meeting_text,
+            meeting_context=meeting_context,
+            fail_after=fail_after,
         )
+        if pipeline["interrupted"]:
+            return {"result": "ok", **sensed, "context": meeting_context, "state_sequence": [meeting_context["state"]], **pipeline}
+        artifacts = pipeline["artifacts"]
+        draft = pipeline["meeting_draft"]
+        orchestration = pipeline["orchestration"]
         final_context = self.store.get_state(session_key) or meeting_context
         state_sequence = [meeting_context["state"]]
         if final_context["state"] != meeting_context["state"]:

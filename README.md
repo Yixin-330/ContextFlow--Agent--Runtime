@@ -1,141 +1,100 @@
 # ContextFlow
 
-ContextFlow is a state-aware workflow layer designed to run behind MTClaw Function Router tools.
+ContextFlow 是一个面向主动式任务 Agent 的 **Runtime & Harness Engineering** 原型。它把可观察的工作事件转换为可执行、可恢复、可审计的工作链路，并在副作用操作前施加状态、权限、审批、幂等和计划版本约束。
 
-## Event state layer
+它不是“多 Agent 列表”或通用办公自动化产品；当前重点是验证 Agent Runtime 的工程基础：事件感知、确定性编排、工具网关、任务生命周期、检查点恢复、确认边界和可复现实验。
 
-ContextFlow can infer a simulated work state from immutable calendar, task, focus, and activity events instead of requiring every state to be written manually. The layer deduplicates observations, evaluates a rolling event window, stores explainable state transitions, and keeps the existing runtime/router interface compatible. See [the event-state guide](docs/event-state-layer.md).
+## 当前定位与边界
 
-Real Outlook/Microsoft 365 read-only sensing is available as an optional Adapter. It uses Microsoft Graph delta synchronization to surface `meeting_upcoming`, `meeting_window_active`, `schedule_conflict`, and observed `meeting_ended` states without claiming attendance or fabricating meeting content. See [the Outlook calendar guide](docs/outlook-calendar.md).
-
-The runnable event ingress includes a calendar simulator, a polling watcher for `demo_desktop`, and a local meeting-notes importer. All three preserve their source semantics and publish through the same state inference seam.
-
-The first fixed proactive product loop watches `demo_inbox` for a newly arrived meeting-notes file, transitions through `meeting_ended` and guarded `deadline_risk`, and automatically prepares meeting, RAG, and delivery-plan results up to an explicit confirmation boundary. See [the proactive meeting loop contract](docs/proactive-meeting-loop.md).
-
-The meeting loop is idempotent across both file sensing and `context_simulate_meeting_end`: a stable source identity is accepted once, triggers the Agent chain once, and creates reviewable drafts once. Replays return existing references without executing orchestration again.
-
-For the real local sensing source, one long-running watcher monitors `inbox/meetings` and `inbox/data`, waits for stable new files, and persists normalized events to SQLite. Meeting and data opportunity states use independent streams so they can coexist. See [the local inbox watcher guide](docs/local-inbox-watcher.md).
-
-## Runtime contract
-
-All tool calls pass through `service/runtime.py` and its single `ContextFlowRuntime.dispatch()` interface. The runtime hides persistence, state validation, Agent selection, draft creation, confirmation handling, and telemetry behind that one seam.
-
-Each Agent Manifest now declares its scenario, eligible states, capabilities, owned tools, trigger hints, latency profile, risk level, confirmation policy, fallback policy, and evaluation tags. This is the extension contract for the upcoming Local RAG, data-analysis, office, delivery-planning, and desktop-execution Agents.
-
-Every invocation is recorded in SQLite with `scenario`, `context_state`, `selected_agent`, `selected_tool`, `latency_ms`, `success`, `fallback_used`, `user_confirmation`, and `error_reason`. Use the local-only runtime command to inspect aggregated telemetry:
-
-```powershell
-'{}' | python .\ContextFlow\service\contextflow_cli.py context_runtime_info
+```text
+观察到的事件
+  -> Context State（证据、置信度、会话隔离）
+  -> Pipeline / Tool Gateway
+  -> Task / Execution / Operation / Approval / Trace
+  -> 本地可验证产物或待确认草稿
 ```
 
-## LocalRAGAgent
+已实现：真实本地文件监听、会议纪要导入、模拟日历事件、6 类声明式 Agent、会后 Pipeline、Task/Execution/Checkpoint/Operation/Approval/Trace 持久化、工具幂等、计划版本绑定审批、本地 RAG、数据洞察、可撤销归档和确定性评测夹具。
 
-`LocalRAGAgent` is the first runnable vertical Agent. It maintains a session-isolated local knowledge space, uses deterministic offline lexical retrieval, and returns the source file plus chunk number for every grounded answer. Its narrow interface is deliberately stable so a future on-device embedding implementation can replace retrieval without changing MTClaw tools.
+未实现或不应误称为已实现：通用 LLM Agent Loop、生产级分布式队列、真实外部任务系统写入、长期记忆、跨进程事务补偿、端到端在线模型性能结论。
 
-```powershell
-# Import the bundled demo knowledge.
-'{"session_key":"demo-rag","document_id":"competition-demo","source_path":".\ContextFlow\demo_knowledge\contextflow_competition_demo.md"}' |
-  python .\ContextFlow\service\contextflow_cli.py rag_ingest
+## 运行时架构
 
-# Ask a grounded question. The result includes citations.
-'{"session_key":"demo-rag","query":"MTClaw 如何调用工具？"}' |
-  python .\ContextFlow\service\contextflow_cli.py rag_answer
+| 层 | 职责 | 当前实现 |
+|---|---|---|
+| OpenClaw | 自然语言交互与 Agent Gateway | 外部集成层 |
+| MTClaw Function Router | 工具路由、短链路执行、上游兜底 | 通过 Schema 和 wrapper 扩展 |
+| ContextFlow Runtime | 状态、Pipeline、任务生命周期、审批、审计 | `service/runtime.py` |
+| Tool Gateway | 工具契约、参数/权限校验、幂等、Operation、Trace | `service/tool_gateway.py` |
+| 持久化 | 状态、草稿、任务、检查点、审批、轨迹 | SQLite / `service/storage.py` |
+
+完整职责边界和时序见：[Runtime 核心架构](核心说明文档/mtclaw-contextflow-runtime核心架构.md)。
+
+## 6 类 Agent
+
+| Agent | 作用 | 当前协作方式 |
+|---|---|---|
+| ContextSensorAgent | 事件接入、状态和 Runtime 控制入口 | 所有状态可用 |
+| MeetingActionAgent | 会议摘要、决策、待办和草稿 | 会后 Pipeline 首节点 |
+| LocalRAGAgent | 会话隔离的本地检索和引用回答 | 会后 Pipeline 的只读证据节点 |
+| DeliveryPlannerAgent | DAG、关键路径和重规划 | 有截止风险时创建草稿 |
+| DataInsightAgent | 数据概览、风险、SVG 图表 | 独立按需工具链 |
+| DesktopExecutorAgent | 文件检索、归档计划、确认、撤销 | 独立本地副作用工具链 |
+
+当前不是 Supervisor 自由协商或无限递归委派。会后流程使用 Pipeline，因为节点顺序、数据依赖、确认点和恢复边界是确定的；模型能力（后续接入）应局限于节点内的语言理解与表达，不能绕过 Runtime 改写控制流。
+
+## 会后 Pipeline、恢复与去重
+
+```text
+meeting notes / meeting-ended event
+  -> process_meeting          (保存会议草稿)
+  -> retrieve_evidence        (只读 RAG)
+  -> plan_delivery            (满足 guard 时保存交付草稿)
+  -> review / approval boundary
 ```
 
-The offline MVP supports inline text, `.txt`, and `.md` sources. PDF, DOCX, embeddings, and reranking are explicit next-stage upgrades rather than silently claimed capabilities.
+每个节点完成后保存 Checkpoint，包含当前节点、完成/待处理节点、工具结果和上下文快照。`context_resume_meeting_pipeline` 从最后一个成功节点恢复，不会重复创建已完成的会议草稿。事件使用稳定 `event_id` 去重；工具使用 Task 内稳定 `idempotency_key`，已完成 Operation 返回保存结果而非再次执行。
 
-## Office and delivery workflows
+## 审批与计划版本
 
-`office_process_meeting` turns meeting text into a reviewable summary, decision list, action items, and an unsent email draft. Its state-triggered orchestrator also searches the session-local knowledge base for related material and, when it finds both an explicit numeric deadline and actionable meeting items, promotes the state to `deadline_risk` and creates a reviewable delivery-plan draft. `workflow_plan_delivery` accepts optional structured `task_specs` to calculate a dependency DAG and critical path; `delivery_replan` marks downstream work blocked after a failure and creates a new review draft. See [the workflow guide](docs/office-and-delivery.md) for the full contract.
-
-## Runtime dashboard
-
-Run `python service/runtime_dashboard.py` from the `ContextFlow` directory and open `http://127.0.0.1:8765`. The local product workspace refreshes every two seconds and displays the current user state, evidence and confidence, real-versus-simulated event source, sensed-event and state-transition timeline, Agent collaboration trace, confirmation boundary, and reviewable meeting/delivery drafts. Add `?session_key=<key>` to inspect a specific isolated session.
-
-Without a `session_key` in the URL, the workspace follows the latest PowerShell, file-watcher, or calendar operation automatically. A fixed demo or explicit URL can temporarily pin the view to one session; use **跟随最新操作** in the header to return to live mode.
-
-If an older dashboard process is already using the port, stop it with `Ctrl+C` and restart the command so the updated workspace is loaded.
-
-### Competition demo controls (P1)
-
-Start the real inbox watcher in one terminal:
-
-```powershell
-python service/event_ingress_cli.py watch-inboxes --session-key competition-demo
+```text
+计划草稿 v1
+  -> runtime_prepare_approval(draft_id, plan_version, requested operation)
+  -> 等待审批 -> runtime_decide_approval -> runtime_execute_approved_operation
 ```
 
-Start the workspace in another terminal:
+执行前会重新核对 Operation、Task、Execution、草稿归属和 `plan_version`。`delivery_replan` 将旧草稿设为 `superseded` 并创建递增版本；即使旧审批已经通过，也无法执行其绑定的旧计划。旧桌面归档确认工具仍为兼容 Demo 保留；新的副作用能力应迁移至通用 Runtime 审批路径。
+
+## 本地运行
+
+Python 3.11+；Runtime 核心仅使用标准库。
 
 ```powershell
+cd ContextFlow
+python -m unittest tests.test_task_runtime tests.test_contextflow tests.test_benchmark
 python service/runtime_dashboard.py
 ```
 
-The workspace now provides a live watcher heartbeat, a button that atomically places the bundled meeting template into the real meeting inbox, five-stage progress, same-event idempotency replay, draft details and approve/reject decisions, a recoverable session-scoped demo reset, and deterministic natural-language questions grounded in the current runtime snapshot. The demo button is disabled unless the watcher heartbeat is healthy. Reset archives generated demo files under `inbox/.demo_archive` and never clears unrelated sessions.
+打开 `http://127.0.0.1:8765` 查看状态证据、事件/状态转移、Agent 轨迹、草稿和确认边界。该工作台目前不是完整的 Agent/Workflow 编辑器。
 
-The **User State Demo Lab** on the same page can independently demonstrate `meeting_upcoming`, `meeting_window_active`, `meeting_ended`, `schedule_conflict`, `focus_mode`, and `data_ready_for_analysis` without PowerShell. These buttons inject clearly labelled simulation signals through the real event store and state-inference engine; they do not fabricate external actions or meeting content. Use **Start New Meeting Demo** when presenting the complete real-file-sensing path that generates meeting, RAG, and delivery-plan drafts.
-
-## DataInsightAgent
-
-`DataInsightAgent` reads local CSV, TSV, and basic XLSX data without a cloud dependency. It profiles typed columns, flags duplicate rows, high missingness, negative values, and numeric outliers, then writes a local SVG bar chart when requested. See [the data guide](docs/data-insight.md).
+模拟一次可恢复的会后任务：
 
 ```powershell
-'{"session_key":"demo-data","dataset_id":"project-progress","source_path":".\ContextFlow\demo_data\project_progress.csv"}' |
-  python .\ContextFlow\service\contextflow_cli.py data_profile
+'{"session_key":"demo-meeting","meeting_title":"Release review","meeting_text":"TODO: Prepare release notes (2 hours). Deliver within 24 hours.","pipeline_fail_after":"retrieve_evidence"}' |
+  python service/contextflow_cli.py context_simulate_meeting_end
 
-'{"session_key":"demo-data","dataset_id":"project-progress"}' |
-  python .\ContextFlow\service\contextflow_cli.py data_analyze
-
-'{"session_key":"demo-data","dataset_id":"project-progress","x_column":"workstream","y_column":"risk_score"}' |
-  python .\ContextFlow\service\contextflow_cli.py data_chart
+'{"session_key":"demo-meeting","execution_id":"<上一步返回的 execution_id>"}' |
+  python service/contextflow_cli.py context_resume_meeting_pipeline
 ```
 
-## First vertical slice
+## 评测与文档
 
-The first runnable slice supports a meeting-ended state and a safe meeting workflow:
+- `benchmark/runner.py`：9 条确定性场景回归；
+- `benchmark/ab_runner.py`：Native 与 ContextFlow 的隔离 A/B 夹具；只有实际配置 Gateway 后才有端到端模型数据；
+- `tests/`：Runtime 生命周期、恢复、幂等和审批版本绑定测试。
 
-1. `context_update_state` records `meeting_ended` for an OpenClaw session.
-2. `context_get_state` returns the current state and its trigger evidence.
-3. `workflow_prepare_meeting` creates a reviewable meeting-workflow draft.
-4. `workflow_confirm_action` confirms or rejects a draft before an external write.
-
-All state is local SQLite data under `data/contextflow.db`.
-
-## DesktopExecutorAgent
-
-`DesktopExecutorAgent` completes the local-action safety loop for a desktop scenario: read-only file discovery, reviewable archive plan, explicit approval, local move, and recorded undo. It never deletes files or runs shell commands. See [the desktop execution guide](docs/desktop-executor.md) for the five-tool interaction contract and demo commands.
-
-## MTClaw integration
-
-- Copy `mtclaw/functions.jsonl` entries into the Function Router `functions_file`.
-- Copy `mtclaw/scripts/*.sh` into the configured `scripts_dir` and make them executable.
-- Set `FR_TOOLS_BASE_DIR` to this `ContextFlow` directory in the Function Router configuration.
-- The wrappers call `service/contextflow_cli.py`, read JSON from stdin, and return JSON to stdout.
-
-For the full OpenClaw + MTClaw deployment on Ubuntu/MTT AIBOOK, including private environment variables, Session Bridge, preflight checks, port alignment, and acceptance checks, see [the integration runbook](docs/openclaw-mtclaw-contextflow.md).
-
-## Local smoke test
-
-```powershell
-'{"session_key":"demo-001","state":"meeting_ended","evidence":["calendar ended","recording ready"]}' |
-  python .\ContextFlow\service\contextflow_cli.py context_update_state
-
-'{"session_key":"demo-001","meeting_title":"HICOOL 项目讨论"}' |
-  python .\ContextFlow\service\contextflow_cli.py workflow_prepare_meeting
-```
-
-This is intentionally a local, review-first prototype: mail and calendar writes are not implemented; file moves are limited to the approved, reversible DesktopExecutor archive flow.
-
-## Scenario Benchmark
-
-`benchmark/runner.py` is the deterministic regression suite for the three
-competition scenarios: meeting-to-delivery orchestration, data risk discovery,
-and confirmed reversible desktop archiving. Each repetition uses an isolated
-SQLite database and temporary workspace, then writes a JSON trace and Markdown
-summary under `benchmark/reports/`.
-
-```powershell
-& ".\ContextFlow\.venv\Scripts\python.exe" ".\ContextFlow\benchmark\runner.py" --runs 3
-```
-
-See [the benchmark guide](benchmark/README.md) for the task contracts and the
-scope of the current deterministic Runtime measurement.
+- [Runtime 核心架构](核心说明文档/mtclaw-contextflow-runtime核心架构.md)
+- [会后 Pipeline 契约](核心说明文档/proactive-meeting-loop.md)
+- [事件与状态层](核心说明文档/event-state-layer.md)
+- [OpenClaw + MTClaw 集成](核心说明文档/openclaw-mtclaw-contextflow.md)
+- [评测协议与复现](核心说明文档/评测协议、指标与复现指南.md)

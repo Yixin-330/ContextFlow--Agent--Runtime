@@ -1,6 +1,6 @@
 # Event state layer
 
-The event state layer simulates user awareness without claiming access to real sensors. Adapters send immutable observations through one interface, `context_ingest_event`; ContextFlow stores them, evaluates a rolling 72-hour event window, updates the current state projection, and records explainable transitions.
+The event state layer turns source-specific observations into an explainable state projection without claiming more than the source observed. It supports simulated signals, local meeting/data file ingress, desktop polling, and an optional read-only Outlook adapter. Adapters send immutable observations through one interface, `context_ingest_event`; ContextFlow stores them, evaluates a rolling 72-hour event window, updates the current state projection, and records explainable transitions.
 
 ## Event contract
 
@@ -31,7 +31,7 @@ Send these events to `service/contextflow_cli.py context_ingest_event` in order:
 4. `task.progress_changed` with `{"completion": 0.4}`
 5. `calendar.deadline_changed` with `{"hours_remaining": 24, "completion": 0.4}` -> `deadline_risk`
 
-The dashboard snapshot exposes `sensed_events` and `state_transitions` alongside the existing state, drafts, and execution trace.
+The dashboard snapshot exposes `sensed_events` and `state_transitions` alongside the existing state, drafts, and execution trace. A state transition can trigger a bounded Pipeline, but state inference itself never authorizes an external write: the Runtime must still validate Agent ownership, Operation state and approval.
 
 ## Event ingress demo
 
@@ -55,7 +55,7 @@ Expected state changes are `meeting_ended` after either meeting signal, `focus_m
 
 ## Natural-language acceptance test
 
-After restarting MTClaw so that `/v1/tools` reports 22 tools, send the following messages in one OpenClaw chat. The Router should choose the named high-level tool; users do not need to provide JSON event fields.
+After restarting MTClaw so that `/v1/tools` exposes the ContextFlow schemas, send the following messages in one OpenClaw chat. The Router should choose the named high-level tool; users do not need to provide JSON event fields.
 
 | Natural-language message | Expected tool | Expected state |
 |---|---|---|

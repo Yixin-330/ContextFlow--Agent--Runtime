@@ -36,6 +36,30 @@ _Avoid_: Raw event, explanation text
 A guarded sequence in which a Sensed Event changes Context State and automatically prepares reviewable work without crossing an external-write confirmation boundary.
 _Avoid_: Automation, unattended execution
 
+**Task**:
+A durable unit of user-facing work with one goal and one or more Executions. It is the ownership boundary for idempotent Operations.
+_Avoid_: Tool call, Agent turn
+
+**Execution**:
+One concrete attempt to run a Task. It has a lifecycle (`running`, `waiting_for_approval`, `interrupted`, `completed`, and failure states) and may resume from a Checkpoint.
+_Avoid_: Task, session
+
+**Checkpoint**:
+A durable snapshot after a successfully completed Pipeline node or tool step. It records completed/pending nodes, results and the context needed to resume; it does not by itself guarantee an external side effect happened exactly once.
+_Avoid_: Conversation history, backup
+
+**Operation**:
+A durable, idempotency-keyed record of one tool action inside a Task and Execution. It is the unit used to reconcile, execute once, or return an already completed result.
+_Avoid_: Approval, Pipeline node
+
+**Approval**:
+A durable backend authorization that binds an Operation to a Task, Execution, and optionally a plan draft/version. A UI button or draft status alone is not an authorization.
+_Avoid_: Frontend state, notification
+
+**Plan Version**:
+The immutable version number of a reviewable plan draft. Replanning creates a new version and marks the former version `superseded`; approval for the former version cannot authorize execution of the replacement.
+_Avoid_: Updated draft, latest text
+
 **Confirmation Boundary**:
 The point after safe local preparation and before an action changes an external system, communicates with another person, or makes a consequential local change.
 _Avoid_: Approval step, warning

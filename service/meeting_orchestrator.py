@@ -38,8 +38,8 @@ class MeetingOrchestrator:
         meeting contains an explicit numeric time window and actionable tasks.
         This keeps scheduling claims deterministic and auditable.
         """
-        rag = self._rag_suggestion(session_key, meeting_title, artifacts)
-        delivery = self._delivery_plan(session_key, meeting_title, meeting_text, artifacts)
+        rag = self.retrieve_evidence(session_key, meeting_title, artifacts)
+        delivery = self.plan_delivery(session_key, meeting_title, meeting_text, artifacts)
         agents = [
             {
                 "agent": "MeetingActionAgent",
@@ -76,6 +76,14 @@ class MeetingOrchestrator:
             "safety": "RAG is read-only. Delivery plans are drafts; no external task-system write occurs automatically.",
         }
 
+    def retrieve_evidence(self, session_key: str, meeting_title: str, artifacts: dict[str, Any]) -> dict[str, Any]:
+        rag = self._rag_suggestion(session_key, meeting_title, artifacts)
+        rag["action_evidence"] = self._action_evidence(session_key, artifacts)
+        return rag
+
+    def plan_delivery(self, session_key: str, meeting_title: str, meeting_text: str, artifacts: dict[str, Any]) -> dict[str, Any]:
+        return self._delivery_plan(session_key, meeting_title, meeting_text, artifacts)
+
     def _rag_suggestion(
         self,
         session_key: str,
@@ -97,6 +105,26 @@ class MeetingOrchestrator:
             "query": query,
             "matches": matches,
         }
+
+    def _action_evidence(
+        self, session_key: str, artifacts: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        evidence = []
+        for index, item in enumerate(artifacts.get("action_items", [])):
+            task = item.get("task") if isinstance(item, dict) else None
+            if not isinstance(task, str) or not task.strip():
+                continue
+            query = task.strip()
+            matches = self.rag.search(session_key, query) if re.search(
+                r"[a-zA-Z0-9_\u4e00-\u9fff]", query
+            ) else []
+            evidence.append({
+                "action_index": index,
+                "task": query,
+                "status": "candidate_evidence" if matches else "needs_review",
+                "matches": matches,
+            })
+        return evidence
 
     def _delivery_plan(
         self,
